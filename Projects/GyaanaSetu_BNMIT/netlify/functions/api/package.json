@@ -1,0 +1,22 @@
+{
+  "name": "gyanasetu-functions",
+  "version": "1.0.0",
+  "description": "GyaanaSetu Cloud Functions",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "deploy": "gcloud functions deploy gyanasetu-api --runtime=nodejs20 --trigger-http --allow-unauthenticated --entry-point=gyanasetu-api --region=asia-south1",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "express": "^4.18.2",
+    "firebase-admin": "^12.0.0",
+    "groq-sdk": "^0.9.0",
+    "node-fetch": "^3.3.2",
+    "serverless-http": "^4.0.0"
+  }
+}

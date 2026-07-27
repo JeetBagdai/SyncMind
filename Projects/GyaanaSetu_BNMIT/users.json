@@ -1,0 +1,52 @@
+{"users": [
+{
+  "localId": "F1S4pVFRHgdEuzPXZwUmRIeIVww2",
+  "email": "teacher.aiml@bnmit.in",
+  "emailVerified": false,
+  "passwordHash": "Nd/Zn5WoagIG0Bh8eXbxk8i1JeLO/cWQnqhxVmPU9LXkqQ0LMTvP1RbJ+xXsjNo1wJH/GDNd0LLbv3/qUUEohQ==",
+  "salt": "OOogy7Z5vofp1A==",
+  "displayName": "Dr. Kavitha Reddy",
+  "lastSignedInAt": "1784867194893",
+  "createdAt": "1784191428626",
+  "providerUserInfo": []
+},
+{
+  "localId": "GPIAb5FmPcaHz08PrUXjUcOUsx73",
+  "email": "jeetbagdai1606@gmail.com",
+  "emailVerified": true,
+  "displayName": "Jeet Bagdai",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIzqffd1_aCsnIy9VnjrQ4u69sDd5nD1NSvuvL93IDZHUfOlg=s96-c",
+  "lastSignedInAt": "1784788208378",
+  "createdAt": "1784786981857",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "106291564204680246877",
+      "email": "jeetbagdai1606@gmail.com",
+      "displayName": "Jeet Bagdai",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIzqffd1_aCsnIy9VnjrQ4u69sDd5nD1NSvuvL93IDZHUfOlg=s96-c"
+    }
+  ]
+},
+{
+  "localId": "NVPrlkJ0zoVWfJDEsNXTlfWgYyj1",
+  "email": "student.aiml@bnmit.in",
+  "emailVerified": false,
+  "passwordHash": "vpO6/xZPI5jxTuwJ758zpFXhvYSUXggQ1f/t4PZjsP32FJAUVo/1oANW4NW5gJo+z3DrcQOiTEbjEGkKLkeVIQ==",
+  "salt": "q1kLTFYwksmDCA==",
+  "displayName": "Rahul Nair",
+  "lastSignedInAt": "1784192497838",
+  "createdAt": "1784191429723",
+  "providerUserInfo": []
+},
+{
+  "localId": "R9nf2YjlWMYC3M4IgsSZm8H8fsx2",
+  "email": "admin@bnmit.in",
+  "emailVerified": false,
+  "passwordHash": "BsDUpnlmC1f3a/FLWnnlFeJm7k1XP+rT/Rh1ZEiQZCjb5V7Q3jG7wmb/vdGg/aPQAx1E+L0fatxdDIQo+FhloA==",
+  "salt": "Iu3fpnOG2sc2lg==",
+  "displayName": "BNMIT Admin",
+  "lastSignedInAt": "1784788290575",
+  "createdAt": "1784192495187",
+  "providerUserInfo": []
+}]}

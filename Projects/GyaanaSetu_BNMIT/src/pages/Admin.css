@@ -1,0 +1,179 @@
+/* src/pages/Admin.css */
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2dff5);
+  border-radius: 0px;
+  padding: 0.4rem;
+  width: fit-content;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));
+}
+
+.admin-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 0px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #4c4a6e);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-tab:hover {
+  color: var(--text-primary, #1e1b4b);
+  background: var(--bg-primary, #f8f7ff);
+}
+
+.admin-tab.active {
+  background: var(--accent-primary, #ea580c);
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(247, 127, 50, 0.35);
+}
+
+/* ── Section ── */
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-card {
+  padding: 1.5rem;
+}
+
+.admin-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border-color, #e2dff5);
+  color: var(--text-primary, #1e1b4b);
+}
+
+.admin-card-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ── Form ── */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 580px) {
+  .admin-form-row { grid-template-columns: 1fr; }
+}
+
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* ── Role pills ── */
+.role-pills {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.role-pill {
+  padding: 0.5rem 1.2rem;
+  border-radius: 0px;
+  border: 1.5px solid var(--border-color, #e2dff5);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-secondary, #4c4a6e);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.role-pill:hover {
+  border-color: var(--accent-primary, #ea580c);
+  color: var(--accent-primary, #ea580c);
+}
+
+.role-pill.active {
+  background: rgba(247, 127, 50, 0.12);
+  border-color: var(--accent-primary, #ea580c);
+  color: var(--accent-primary, #ea580c);
+  font-weight: 700;
+}
+
+/* ── Sem pills ── */
+.sem-pill {
+  padding: 0.35rem 0.85rem;
+  border-radius: 0px;
+  border: 1px solid var(--border-color, #e2dff5);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-secondary, #4c4a6e);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sem-pill:hover {
+  border-color: var(--accent-primary, #ea580c);
+  color: var(--accent-primary, #ea580c);
+}
+
+.sem-pill.active {
+  background: rgba(247, 127, 50, 0.12);
+  border-color: var(--accent-primary, #ea580c);
+  color: var(--accent-primary, #ea580c);
+  font-weight: 700;
+  border-width: 2px;
+}
+
+/* ── Status banner ── */
+.admin-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-status.success {
+  background: #ffedd5;
+  color: #1a7a5e;
+  border: 1px solid #b2dfd0;
+}
+
+.admin-status.error {
+  background: #fee2e2;
+  color: #c0375c;
+  border: 1px solid #f5b8ca;
+}
+
+/* ── Spin animation ── */
+.spin-anim {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
