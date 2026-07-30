@@ -55,9 +55,8 @@
 
 .tt-grid {
   display: grid;
-  grid-template-columns: 80px repeat(6, 1fr);
   gap: 2px;
-  min-width: 700px;
+  min-width: 800px;
   background: var(--border-color);
   border-radius: 0px;
   overflow: hidden;
@@ -74,19 +73,22 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.tt-time-header {
-  text-align: left;
-  padding-left: 0.75rem;
-}
-
-.tt-time-cell {
+.tt-day-cell {
   background: var(--bg-secondary);
-  padding: 0.75rem 0.5rem 0.75rem 0.75rem;
+  padding: 0.75rem 0.5rem;
   font-size: var(--font-size-xs);
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tt-cell {
@@ -95,7 +97,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  min-height: 56px;
+  min-height: 70px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   transition: filter var(--transition-fast);
 }
 
@@ -114,13 +119,19 @@
   opacity: 0.75;
 }
 
-.tt-break-row {
+.tt-break-col {
   background: var(--color-gold-soft);
   color: #92400e;
   text-align: center;
   padding: 0.5rem;
   font-size: var(--font-size-xs);
   font-weight: 600;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.3em;
 }
 
 .section-title {
@@ -131,8 +142,8 @@
   margin-bottom: 0.875rem;
 }
 
-/* Today column highlight */
-.tt-header-cell.today {
+/* Today row highlight */
+.tt-day-cell.today {
   background: rgba(247, 127, 50, 0.12);
   color: var(--primary);
   border-radius: 0px;

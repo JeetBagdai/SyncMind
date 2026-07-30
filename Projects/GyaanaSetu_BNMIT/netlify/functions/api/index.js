@@ -13,7 +13,9 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:3000',
     /\.run\.app$/,
-    'https://gyaanasetu-frontend-702753836810.asia-south1.run.app'
+    'https://gyaanasetu-frontend-702753836810.asia-south1.run.app',
+    'https://gyaanasetu-bnmit.netlify.app',
+    /\.netlify\.app$/
   ],
   credentials: true,
 }))

@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, BookOpen, ClipboardCheck,
   Calendar, MessageCircle, ShieldCheck,
-  LogOut, GraduationCap, LayoutGrid
+  LogOut, GraduationCap, LayoutGrid, BarChart3, Code2
 } from 'lucide-react'
 import './Sidebar.css'
 
 const STUDENT_NAV = [
   { to: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, color: '#ea580c' },
   { to: '/learning',   label: 'Learning',   icon: BookOpen,         color: '#ea580c' },
+  { to: '/codeit',     label: 'CodeIT',     icon: Code2,            color: '#ea580c' },
   { to: '/attendance', label: 'Attendance', icon: ClipboardCheck,   color: '#e85d04' },
   { to: '/timetable',  label: 'Timetable',  icon: Calendar,         color: '#f59e0b' },
   { to: '/chatbot',    label: 'AI Tutor',   icon: MessageCircle,    color: '#e65c00' },
@@ -19,6 +20,7 @@ const STUDENT_NAV = [
 const TEACHER_NAV_BASE = [
   { to: '/dashboard',  label: 'Dashboard',   icon: LayoutDashboard, color: '#ea580c' },
   { to: '/attendance', label: 'Attendance',  icon: ClipboardCheck,  color: '#e85d04' },
+  { to: '/performance', label: 'Performance', icon: BarChart3,       color: '#e65c00' },
   { to: '/timetable',  label: 'My Schedule', icon: Calendar,        color: '#f59e0b' },
 ]
 
@@ -46,7 +48,7 @@ function getNav(profile) {
   return STUDENT_NAV
 }
 
-export default function Sidebar() {
+export default function Sidebar({ className }) {
   const { profile, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -58,10 +60,8 @@ export default function Sidebar() {
   const navItems = getNav(profile)
 
   const roleLabel = profile?.role === 'admin'
-    ? 'Admin'
-    : profile?.role === 'teacher'
-      ? 'Teacher'
-      : 'Student'
+    ? 'Administrator'
+    : profile?.role === 'teacher' ? 'Faculty' : 'Student'
 
   const roleBadgeStyle = profile?.role === 'admin'
     ? { background: '#fee2e2', color: '#ef4444' }
@@ -70,7 +70,7 @@ export default function Sidebar() {
       : { background: '#fff2e8', color: '#ea580c' }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${className || ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
         <img src="/logo.png" alt="GyaanaSetu Logo" style={{ width: 40, height: 40, borderRadius: 0 }} />

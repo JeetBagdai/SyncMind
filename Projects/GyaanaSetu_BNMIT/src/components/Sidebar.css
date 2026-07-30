@@ -10,8 +10,12 @@
   flex-direction: column;
   padding: 1.25rem 0.75rem;
   z-index: 100;
-  transition: background var(--transition-base), border-color var(--transition-base);
+  transition: transform var(--transition-base), width var(--transition-base), background var(--transition-base), border-color var(--transition-base);
   overflow-y: auto;
+}
+
+.page-layout.sidebar-closed .sidebar {
+  transform: translateX(-100%);
 }
 
 /* Logo */

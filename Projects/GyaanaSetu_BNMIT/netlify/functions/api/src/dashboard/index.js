@@ -131,7 +131,8 @@ async function getStats(req, res) {
       return res.json({
         chaptersRead,
         progressScore,
-        attendanceDays
+        attendanceDays,
+        avgQuizScore: Math.round(avgQuizScore)
       })
     }
   } catch (err) {

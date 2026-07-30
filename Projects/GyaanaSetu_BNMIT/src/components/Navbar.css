@@ -13,11 +13,11 @@
   justify-content: space-between;
   padding: 0 1.5rem;
   z-index: 90;
-  transition: background var(--transition-base), border-color var(--transition-base);
+  transition: left var(--transition-base), background var(--transition-base), border-color var(--transition-base);
 }
 
-/* Admin has no sidebar — navbar spans full width */
-.admin-layout .navbar {
+.admin-layout .navbar,
+.page-layout.sidebar-closed .navbar {
   left: 0;
 }
 
@@ -28,7 +28,7 @@
 }
 
 .menu-btn {
-  display: none;
+  display: flex;
   background: transparent;
   border: none;
   color: var(--text-secondary);
@@ -101,8 +101,5 @@
 @media (max-width: 768px) {
   .navbar {
     left: 0;
-  }
-  .menu-btn {
-    display: flex;
   }
 }

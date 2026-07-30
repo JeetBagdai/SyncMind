@@ -26,7 +26,7 @@ Rules:
 async function message(req, res) {
   try {
     await verifyToken(req)
-    const { messages = [], userRole = 'student', grade = 'VI' } = req.body
+    const { messages = [], userRole = 'student', semester = '3' } = req.body
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'messages array required' })
@@ -34,7 +34,7 @@ async function message(req, res) {
 
     const systemWithContext = `${SYSTEM_PROMPT}
 \nCurrent user role: ${userRole}
-${grade ? `Current grade context: Grade ${grade}` : ''}`
+${semester ? `Current academic context: Semester ${semester}` : ''}`
 
     const completion = await groq.chat.completions.create({
       model:       'llama-3.3-70b-versatile',

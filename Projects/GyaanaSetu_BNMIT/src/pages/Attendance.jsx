@@ -7,7 +7,7 @@ import { QRCodeSVG as QRCode } from 'qrcode.react'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { useAuth } from '../context/AuthContext'
 import { getToken } from '../services/auth'
-import { createAttendanceSession, markAttendance, getAttendanceReport } from '../services/api'
+import { createAttendanceSession, markAttendance, getAttendanceReport, getTeacherAttendanceReport } from '../services/api'
 import './Attendance.css'
 
 const getCurrentLocation = () => {
@@ -43,8 +43,6 @@ const AIML_SUBJECTS = [
 ]
 
 const AIML_SEMESTERS = [
-  { id: 'AIML-SEM1', label: 'Semester 1' },
-  { id: 'AIML-SEM2', label: 'Semester 2' },
   { id: 'AIML-SEM3', label: 'Semester 3' },
   { id: 'AIML-SEM4', label: 'Semester 4' },
   { id: 'AIML-SEM5', label: 'Semester 5' },
@@ -100,81 +98,127 @@ function QrScannerBox({ onScan, onCancel }) {
 }
 
 
+function TeacherAttendanceReport({ teacherSem, setTeacherSem, profile }) {
+  const [reportData, setReportData] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [selectedSubject, setSelectedSubject] = useState('All')
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const data = await getTeacherAttendanceReport(teacherSem, null, profile?.uid)
+        setReportData(data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [teacherSem, profile?.uid])
+
+  const availableSubjects = Array.from(new Set(reportData.flatMap(s => s.records.map(r => r.subject))))
+  
+  useEffect(() => {
+    if (selectedSubject !== 'All' && !availableSubjects.includes(selectedSubject)) {
+      setSelectedSubject('All')
+    }
+  }, [availableSubjects, selectedSubject])
+
+  const tableData = reportData.map(s => {
+    const filteredRecords = selectedSubject === 'All' 
+      ? s.records 
+      : s.records.filter(r => r.subject === selectedSubject)
+    return {
+      id: s.studentId,
+      name: s.name,
+      presentCount: filteredRecords.length,
+      lastAttended: filteredRecords.length > 0 
+        ? new Date(Math.max(...filteredRecords.map(r => r.timestamp))).toLocaleDateString()
+        : 'Never'
+    }
+  })
+
+  return (
+    <div className="attendance-teacher">
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+        <h2 className="section-title" style={{ marginBottom: '1rem' }}>Attendance Reports</h2>
+        <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>View aggregate attendance for students in classes you teach.</p>
+        
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Semester</label>
+            <select className="form-input" value={teacherSem} onChange={e => setTeacherSem(e.target.value)} style={{ minWidth: 150, padding: '0.5rem' }}>
+              {AIML_SEMESTERS.map(sem => (
+                <option key={sem.id} value={sem.id}>{sem.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Subject</label>
+            <select className="form-input" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} style={{ minWidth: 200, padding: '0.5rem' }}>
+              <option value="All">All Your Subjects</option>
+              {availableSubjects.map(sub => (
+                <option key={sub} value={sub}>{sub}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center' }}>Loading reports...</div>
+        ) : tableData.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            No attendance records found for your classes in {AIML_SEMESTERS.find(s => s.id === teacherSem)?.label}.
+          </div>
+        ) : (
+          <div className="table-responsive" style={{ maxHeight: 500, overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--surface)' }}>
+                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Student</th>
+                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Classes Attended</th>
+                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Last Attended</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.sort((a,b) => b.presentCount - a.presentCount).map((row, i) => (
+                  <tr key={row.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--background)' }}>
+                    <td style={{ padding: '1rem 1.5rem' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{row.id}</div>
+                    </td>
+                    <td style={{ padding: '1rem 1.5rem' }}>
+                      <span className="badge badge-teal" style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>{row.presentCount} {row.presentCount === 1 ? 'class' : 'classes'}</span>
+                    </td>
+                    <td style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      {row.lastAttended}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Attendance() {
   const { t } = useTranslation()
   const { profile } = useAuth()
   const isTeacher = profile?.role === 'teacher'
 
-  // Teacher state
-  const [session, setSession]             = useState(null)
-  const [sessionActive, setSessionActive] = useState(false)
-  const [presentStudents, setPresentStudents] = useState([])
-  const [loadingSession, setLoadingSession]   = useState(false)
-  const [selectedSubject, setSelectedSubject] = useState(AIML_SUBJECTS[0])
-  const [teacherSem, setTeacherSem]           = useState('AIML-SEM5') // teacher picks which sem
-
-  // Polling for live attendance updates
-  useEffect(() => {
-    let interval
-    const classId = isTeacher ? teacherSem : STUDENT_CLASS_ID
-    if (sessionActive && session?.sessionId) {
-      interval = setInterval(async () => {
-        try {
-          const token = await getToken()
-          const today = new Date().toISOString().split('T')[0]
-          const report = await getAttendanceReport(classId, today, token)
-          const current = report.present.filter(s => s.sessionId === session.sessionId)
-          setPresentStudents(current.map(s => ({
-            id: s.studentId,
-            name: s.name || `Student (${s.studentId.slice(0, 4)})`,
-          })))
-        } catch (err) {
-          console.error('[Attendance] Poll error', err)
-        }
-      }, 3000)
-    }
-    return () => clearInterval(interval)
-  }, [sessionActive, session, teacherSem, isTeacher])
+  const [teacherSem, setTeacherSem] = useState('AIML-SEM5')
 
   // Student state
   const [scanResult, setScanResult]   = useState(null)   // 'success' | 'expired' | 'error'
   const [scanning, setScanning]       = useState(false)
-
-  // ── TEACHER: Start session ──────────────────────────
-  const handleStartClass = async () => {
-    setLoadingSession(true)
-    try {
-      const location = await getCurrentLocation()
-      const token = await getToken()
-      const data  = await createAttendanceSession({
-        classId:   teacherSem,
-        teacherId: profile?.uid,
-        subject:   `${selectedSubject.code} - ${selectedSubject.name}`,
-        lat: location.lat,
-        lng: location.lng,
-      }, token)
-      setSession(data)
-      setSessionActive(true)
-      setPresentStudents([])
-    } catch (err) {
-      console.error("Start class error:", err)
-      const msg = err.message?.toLowerCase() || ''
-      if (msg.includes('location') || msg.includes('geolocation')) {
-        alert(err.message)
-      } else {
-        alert('Could not create session. Make sure Cloud Functions are deployed.')
-      }
-    } finally {
-      setLoadingSession(false)
-    }
-  }
-
-  const handleEndClass = () => {
-    setSession(null)
-    setSessionActive(false)
-  }
-
-
 
   return (
     <div className="page-inner">
@@ -183,180 +227,20 @@ export default function Attendance() {
           <h1 className="page-title">Attendance</h1>
           <p className="page-subtitle">
             {isTeacher
-              ? 'Generate QR codes · AIML Semester 4'
-              : 'Scan the class QR to mark your presence · AIML Sem 4'}
+              ? 'View class attendance reports'
+              : `Scan the class QR to mark your presence · AIML Sem ${profile?.semester || profile?.classId?.replace('AIML-SEM', '') || '5'}`}
           </p>
         </div>
-        <span className="badge badge-orange" style={{ fontSize: '0.8rem', padding: '0.35rem 0.9rem' }}>AIML-SEM4</span>
+        {!isTeacher && (
+          <span className="badge badge-orange" style={{ fontSize: '0.8rem', padding: '0.35rem 0.9rem' }}>
+            {profile?.classId || `AIML-SEM${profile?.semester || '5'}`}
+          </span>
+        )}
       </div>
 
       {/* ── TEACHER VIEW ── */}
       {isTeacher && (
-        <div className="attendance-teacher">
-          <div className="attendance-panel card">
-            <div className="panel-header">
-              <div>
-                <h2 className="panel-title">Class Session</h2>
-                <p className="text-muted text-sm">Select subject and start a session to generate a QR code</p>
-              </div>
-              {!sessionActive ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={handleStartClass}
-                  disabled={loadingSession}
-                  id="start-class-btn"
-                >
-                  <PlayCircle size={16} />
-                  {loadingSession ? 'Starting...' : 'Start Class'}
-                </button>
-              ) : (
-                <button className="btn btn-danger" onClick={handleEndClass} id="end-class-btn">
-                  <StopCircle size={16} />
-                  End Class
-                </button>
-              )}
-            </div>
-
-            {/* Semester + Subject selectors */}
-            {!sessionActive && (
-              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-                {/* Semester selector */}
-                <div>
-                  <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
-                    Select Semester (Class)
-                  </label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    {AIML_SEMESTERS.map(sem => (
-                      <button
-                        key={sem.id}
-                        type="button"
-                        onClick={() => setTeacherSem(sem.id)}
-                        style={{
-                          padding: '0.4rem 0.9rem',
-                          borderRadius: 0,
-                          border: teacherSem === sem.id ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          background: teacherSem === sem.id ? 'rgba(247,127,50,0.12)' : 'var(--surface)',
-                          color: teacherSem === sem.id ? 'var(--primary)' : 'var(--text-muted)',
-                          fontSize: '0.8rem',
-                          fontWeight: teacherSem === sem.id ? 700 : 400,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        {sem.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Subject selector */}
-                <div>
-                  <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
-                    <BookOpen size={14} style={{ display: 'inline', marginRight: 6 }} />
-                    Select Subject
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.5rem' }}>
-                    {AIML_SUBJECTS.map(subj => (
-                      <button
-                        key={subj.code}
-                        type="button"
-                        onClick={() => setSelectedSubject(subj)}
-                        style={{
-                          padding: '0.65rem 1rem',
-                          borderRadius: 0,
-                          border: selectedSubject.code === subj.code ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          background: selectedSubject.code === subj.code ? 'rgba(247,127,50,0.1)' : 'var(--surface)',
-                          color: selectedSubject.code === subj.code ? 'var(--primary)' : 'var(--text-primary)',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontWeight: selectedSubject.code === subj.code ? 600 : 400,
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        <div style={{ fontSize: '0.72rem', opacity: 0.7 }}>{subj.code}</div>
-                        <div style={{ fontSize: '0.85rem' }}>{subj.name}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            )}
-
-            {/* Active session info */}
-            {sessionActive && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                <span className="badge badge-orange" style={{ fontSize: '0.78rem' }}>
-                  {AIML_SEMESTERS.find(s => s.id === teacherSem)?.label || teacherSem}
-                </span>
-                <span className="badge badge-teal" style={{ fontSize: '0.78rem' }}>
-                  {selectedSubject.code} · {selectedSubject.name}
-                </span>
-              </div>
-            )}
-
-
-            {sessionActive && session && (
-              <motion.div
-                className="qr-display"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-              >
-                <div className="qr-wrapper">
-                  <QRCode
-                    value={session.qrData || session.sessionId || 'demo-session'}
-                    size={256}
-                    bgColor="#ffffff"
-                    fgColor="#000000"
-                    level="M"
-                    includeMargin
-                  />
-                </div>
-                <div className="qr-info">
-                  <span className="badge badge-teal">● Live Session</span>
-                  <p className="text-sm text-muted" style={{ marginTop: '0.5rem' }}>
-                    Session ID: <code>{session.sessionId?.slice(0, 12)}...</code>
-                  </p>
-                  <p className="text-xs text-muted">
-                    Valid for 2 minutes from scan
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {!sessionActive && (
-              <div className="qr-placeholder">
-                <QrCode size={64} color="var(--text-muted)" style={{ opacity: 0.3 }} />
-                <p className="text-muted text-sm">{t('start_class_to_gen', 'Start a class to generate QR')}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Attendance feed */}
-          <div className="card" style={{ flex: 1 }}>
-            <div className="panel-header" style={{ marginBottom: '1rem' }}>
-              <h2 className="panel-title">{t('students_present')}</h2>
-              <span className="badge badge-teal">{presentStudents.length} present</span>
-            </div>
-            {presentStudents.length === 0 ? (
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.75rem', padding:'2rem' }}>
-                <Users size={40} color="var(--text-muted)" style={{ opacity: 0.4 }} />
-                <p className="text-muted text-sm">Waiting for students to scan...</p>
-              </div>
-            ) : (
-              <div className="present-list">
-                {presentStudents.map(s => (
-                  <div key={s.id} className="present-item">
-                    <div className="present-avatar">{s.name?.[0]}</div>
-                    <span className="text-sm font-medium">{s.name}</span>
-                    <CheckCircle size={14} color="var(--accent-success)" style={{ marginLeft:'auto' }} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <TeacherAttendanceReport teacherSem={teacherSem} setTeacherSem={setTeacherSem} profile={profile} />
       )}
 
       {/* ── STUDENT VIEW ── */}
@@ -420,7 +304,7 @@ export default function Attendance() {
                         if (e.message?.includes('Location') || e.message?.includes('Geolocation')) {
                           setScanResult(`error:${e.message}`)
                         } else {
-                          setScanResult(e.message?.includes('expired') ? 'expired' : 'error:Could not mark attendance. Try again.')
+                          setScanResult(e.message?.includes('expired') ? 'expired' : `error:Server Error: ${e.message}`)
                         }
                       }
                     }

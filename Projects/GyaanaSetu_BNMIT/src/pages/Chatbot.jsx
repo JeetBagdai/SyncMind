@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Send, Trash2, Bot, User, Loader, Sparkles } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { useAuth } from '../context/AuthContext'
 import { getToken } from '../services/auth'
 import { sendChatMessage } from '../services/api'
@@ -148,12 +149,9 @@ export default function Chatbot() {
                   }
                 </div>
                 <div className="chat-bubble">
-                  {msg.content.split('\n').map((line, j) => (
-                    <span key={j}>
-                      {line}
-                      {j < msg.content.split('\n').length - 1 && <br />}
-                    </span>
-                  ))}
+                  <div className="markdown-body" style={{ overflowWrap: 'break-word', wordBreak: 'break-word', minWidth: 0, width: '100%' }}>
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
                 </div>
               </motion.div>
             ))}

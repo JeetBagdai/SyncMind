@@ -166,9 +166,6 @@ export default function Login() {
                       minLength={6}
                     />
                   </div>
-                  <div className="forgot-password">
-                    <a href="#">Forgot password?</a>
-                  </div>
                 </div>
 
                 {error && (

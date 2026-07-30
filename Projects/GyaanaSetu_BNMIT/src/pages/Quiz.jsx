@@ -63,7 +63,7 @@ export default function Quiz() {
   const navigate = useNavigate()
   const { profile } = useAuth()
 
-  const { grade = 'VI', subject = 'Science', chapter = '', timeSpent = 0 } = location.state || {}
+  const { semester = '3', subject = 'Science', module = '', timeSpent = 0 } = location.state || {}
 
   const [phase, setPhase] = useState('loading')
   const [questions, setQuestions] = useState([])
@@ -84,7 +84,7 @@ export default function Quiz() {
     
     try {
       const token = await getToken()
-      const data = await generateQuiz(grade, subject, chapter || subject, token)
+      const data = await generateQuiz(semester, subject, module || subject, token)
       if (data.questions && data.questions.length > 0) {
         setQuestions(data.questions)
       } else {
@@ -100,7 +100,7 @@ export default function Quiz() {
   // ── Fetch AI Questions ─────────────────────────────
   useEffect(() => {
     fetchQuestions()
-  }, [grade, subject, chapter])
+  }, [semester, subject, module])
 
   // ── Quiz countdown timer ───────────────────────
   useEffect(() => {
@@ -158,16 +158,18 @@ export default function Quiz() {
     const tCorrect = tCorrectMCQ + tScoreSubj
     
     const sPercent = questions.length > 0 ? Math.round((tCorrect / questions.length) * 100) : 0
-    const weakList = analyseWeakTopics(questions, answers).filter(t => t.isWeak).map(t => t.topic)
+    const analysis = analyseWeakTopics(questions, answers)
+    const analysisObj = {}
+    analysis.forEach(a => analysisObj[a.topic] = a)
 
     try {
       const token = await getToken()
       await postQuizResult({
-        grade,
+        semester,
         subject,
-        chapter: chapter || subject,
+        module: module || subject,
         scorePercent: sPercent,
-        weakTopics: weakList
+        weakTopics: Object.keys(analysisObj).filter(k => analysisObj[k].isWeak)
       }, token)
     } catch (err) {
       console.error('Failed to save quiz results:', err)
@@ -218,10 +220,10 @@ export default function Quiz() {
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
             <Brain size={52} color="var(--accent-primary)" />
           </motion.div>
-          <h2 className="quiz-loading-title">Generating your quiz…</h2>
+          <h2 className="quiz-loading-title">Generating your quiz...</h2>
           <p className="text-muted text-sm">
-            AI is crafting 20 NCERT-aligned questions for<br />
-            <strong>{chapter || subject}</strong> · Grade {grade}
+            AI is crafting 20 college-level questions for<br />
+            <strong>{module || subject}</strong> • Semester {semester}
           </p>
         </div>
       </div>
@@ -244,8 +246,8 @@ export default function Quiz() {
     return (
       <div className="page-inner quiz-page">
         <div className="page-header">
-          <h1 className="page-title">📊 Quiz Results</h1>
-          <p className="page-subtitle">{chapter || subject} · Grade {grade}</p>
+          <h1 className="page-title">🎯 Quiz Results</h1>
+          <p className="page-subtitle">{module || subject} • Semester {semester}</p>
         </div>
 
         <div className="results-layout">
@@ -318,7 +320,7 @@ export default function Quiz() {
                           <p style={{ fontWeight: 600, color: 'var(--primary)' }}>Score: {ans?.score || 0} / 5</p>
                           {ans?.feedback && <p style={{ marginTop: '0.5rem' }}><strong>Feedback:</strong> {ans.feedback}</p>}
                           {ans?.missedPoints && <p style={{ marginTop: '0.5rem', color: '#ef4444' }}><strong>Missed Points:</strong> {ans.missedPoints}</p>}
-                          <p style={{ marginTop: '1rem', color: '#16a34a' }}><strong>Expected NCERT Answer:</strong> {q.expectedAnswer}</p>
+                          <p style={{ marginTop: '1rem', color: '#16a34a' }}><strong>Expected Answer:</strong> {q.expectedAnswer}</p>
                         </div>
                       )}
                       {q.expectedAnswer && q.type === 'mcq' && <p className="review-explanation">💡 {q.expectedAnswer}</p>}
@@ -343,8 +345,8 @@ export default function Quiz() {
     <div className="page-inner quiz-page">
       <div className="quiz-header">
         <div className="quiz-meta">
-          <h1 className="quiz-chapter-title">{chapter || subject}</h1>
-          <p className="text-muted text-sm">Grade {grade} · {questions.length} Questions</p>
+          <h1 className="quiz-chapter-title">{module || subject}</h1>
+          <p className="text-muted text-sm">Semester {semester} · {questions.length} Questions</p>
         </div>
         <div className={`quiz-timer ${timerCritical ? 'critical' : ''}`}>
           <Clock size={15} /><span>{formatTime(quizSeconds)}</span>

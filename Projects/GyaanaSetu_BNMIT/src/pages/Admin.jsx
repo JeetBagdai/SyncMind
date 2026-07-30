@@ -3,18 +3,18 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Users, UserPlus, Calendar, Plus, Trash2,
-  Wand2, Save, CheckCircle, AlertCircle, Loader,
+  Users, UserPlus, Calendar, Plus, Trash2, Edit,
+  Wand2, Save, CheckCircle, AlertCircle, Loader, X,
   ShieldCheck, ToggleLeft, ToggleRight, RefreshCw, Users2, ChevronDown
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getToken } from '../services/auth'
 import { generateTimetable, saveTimetable, getTimetable } from '../services/api'
+import TimetableManage from './TimetableManage'
 import './Admin.css'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const AIML_SEMESTERS = [
-  { id: 'AIML-SEM1', label: 'Sem 1' }, { id: 'AIML-SEM2', label: 'Sem 2' },
   { id: 'AIML-SEM3', label: 'Sem 3' }, { id: 'AIML-SEM4', label: 'Sem 4' },
   { id: 'AIML-SEM5', label: 'Sem 5' }, { id: 'AIML-SEM6', label: 'Sem 6' },
   { id: 'AIML-SEM7', label: 'Sem 7' }, { id: 'AIML-SEM8', label: 'Sem 8' },
@@ -25,27 +25,26 @@ const AIML_SUBJECTS = [
   'Computer Vision', 'Big Data Analytics', 'Cloud Computing',
 ]
 
-// Full subject catalogue for teacher assignment
-const AIML_SUBJECT_CATALOGUE = [
-  { code: '21AI101', name: 'Programming Fundamentals',    sem: 1 },
-  { code: '21AI102', name: 'Engineering Mathematics I',   sem: 1 },
-  { code: '21AI201', name: 'Data Structures',             sem: 2 },
-  { code: '21AI202', name: 'Engineering Mathematics II',  sem: 2 },
-  { code: '21AI301', name: 'Database Management Systems', sem: 3 },
-  { code: '21AI302', name: 'Statistics for AI',           sem: 3 },
-  { code: '21AI401', name: 'Introduction to AI',          sem: 4 },
-  { code: '21AI402', name: 'Computer Networks',           sem: 4 },
-  { code: '21AI501', name: 'Machine Learning',            sem: 5 },
-  { code: '21AI502', name: 'Deep Learning',               sem: 5 },
-  { code: '21AI503', name: 'Natural Language Processing', sem: 5 },
-  { code: '21AI504', name: 'Computer Vision',             sem: 5 },
-  { code: '21AI505', name: 'Big Data Analytics',          sem: 5 },
-  { code: '21AI506', name: 'Cloud Computing',             sem: 5 },
-  { code: '21AI601', name: 'Reinforcement Learning',      sem: 6 },
-  { code: '21AI602', name: 'AI Ethics & Policy',          sem: 6 },
-  { code: '21AI701', name: 'Advanced Deep Learning',      sem: 7 },
-  { code: '21AI702', name: 'MLOps & Deployment',          sem: 7 },
-]
+const SUBJECTS_BY_SEM = {
+  3: ['Fourier Transform, Mathematical Logic & Advanced Linear Algebra','Computer Organization and Architecture','Artificial Intelligence','Data Structures & Applications','Microcontroller and Embedded Systems','Object Oriented Programming using Java (Lab)'],
+  4: ['Statistics, Probability and Graph Theory','Operating System','Database Management System','Design and Analysis of Algorithms','Machine Learning','Cloud Computing & Applications (Lab)'],
+  5: ['Software Engineering, Project Management & Finance','Automata Theory & Computations','Computer Networks & Security','Advanced Machine Learning','Virtual Reality & Augmented Reality (Lab)','Open Elective - I'],
+  6: ['Deep Learning','Natural Language Processing','Generative Artificial Intelligence','Image Processing & Computer Vision (Lab)','Professional Elective - I','Professional Elective - II (MOOC)'],
+  7: ['Agentic Artificial Intelligence','Professional Elective - III','Professional Elective - IV (MOOC)','Research Methodology & Intellectual Property Rights'],
+  8: ['Professional Elective - V (MOOC)'],
+}
+
+const AIML_SUBJECT_CATALOGUE = []
+Object.entries(SUBJECTS_BY_SEM).forEach(([semStr, subjects]) => {
+  const sem = parseInt(semStr, 10)
+  subjects.forEach((name, idx) => {
+    AIML_SUBJECT_CATALOGUE.push({
+      code: `SUB${sem}0${idx+1}`,
+      name,
+      sem
+    })
+  })
+})
 
 const FACULTY_LIST = [
   { name: 'Dr. Kavitha Reddy',  subject: 'Machine Learning' },
@@ -280,6 +279,23 @@ async function setTimetableAccess(uid, granted) {
   }
 }
 
+async function updateTeacherSubjects(uid, subjectsStr) {
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/users/${uid}?updateMask.fieldPaths=subjects`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: { subjects: { stringValue: subjectsStr } },
+      }),
+    }
+  )
+  if (!res.ok) {
+    const b = await res.json()
+    throw new Error(b?.error?.message || 'Failed to update subjects')
+  }
+}
+
 async function queryAllUsers() {
   const res = await fetch(
     `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents:runQuery`,
@@ -305,8 +321,9 @@ async function queryAllUsers() {
         email:           f.email?.stringValue           || '',
         role:            f.role?.stringValue            || 'student',
         department:      f.department?.stringValue      || 'AIML',
-        semester:        f.semester?.integerValue ? Number(f.semester.integerValue) : (f.semester?.stringValue ? Number(f.semester.stringValue) : 5),
+        semester:        f.semester?.integerValue ? Number(f.semester.integerValue) : (f.semester?.stringValue ? Number(f.semester.stringValue) : null),
         usn:             f.usn?.stringValue             || '',
+        subjects:        f.subjects?.stringValue        || '',
         timetableManager: f.timetableManager?.booleanValue === true,
       }
     })
@@ -371,7 +388,7 @@ export default function Admin() {
         >
           {tab === 'users'     && <UserManager />}
           {tab === 'access'    && <TimetableAccess />}
-          {tab === 'timetable' && <TimetableManager />}
+          {tab === 'timetable' && <TimetableManage />}
         </motion.div>
       </AnimatePresence>
     </div>
@@ -393,11 +410,17 @@ function UserManager() {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  // User list state
   const [userList, setUserList] = useState([])
   const [fetchingUsers, setFetchingUsers] = useState(true)
   const [userFilter, setUserFilter] = useState('all') // 'all' | 'student' | 'teacher'
   const [revokingUid, setRevokingUid] = useState(null)
+  
+  // Edit Subjects State
+  const [editingTeacher, setEditingTeacher] = useState(null)
+  const [editSubjects, setEditSubjects] = useState([])
+  const [editCustomName, setEditCustomName] = useState('')
+  const [editCustomCode, setEditCustomCode] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const loadUserList = async () => {
     setFetchingUsers(true)
@@ -424,7 +447,7 @@ function UserManager() {
     try {
       const isTeacher = form.role === 'teacher'
       const subjectsStr = isTeacher
-        ? selectedSubjects.map(s => `${s.code}:${s.name}`).join(',')
+        ? selectedSubjects.map(s => `${s.name} (Sem ${s.sem || 0})`).join(',')
         : ''
 
       const profile = {
@@ -494,6 +517,42 @@ function UserManager() {
       setStatus({ type: 'error', msg: `❌ Failed to revoke account: ${err.message}` })
     } finally {
       setRevokingUid(null)
+    }
+  }
+
+  const handleEditSubjects = (user) => {
+    const parsed = (user.subjects || '').split(',').filter(Boolean).map((s, i) => {
+      // Temporary fallback for corrupted code:name format
+      if (s.includes(':')) {
+        const [code, name] = s.split(':')
+        let sem = 0
+        const semMatch = code.match(/\d+/)
+        if (semMatch) sem = parseInt(String(semMatch[0]).charAt(0), 10)
+        return { code: code.trim(), name: name.trim(), sem }
+      }
+      
+      const match = s.trim().match(/(.+)\s*\(Sem\s*(\d+)\)/i)
+      if (match) {
+        return { code: `S${match[2]}-${i}`, name: match[1].trim(), sem: Number(match[2]) }
+      }
+      return { code: `Subj-${i}`, name: s.trim(), sem: 0 }
+    })
+    setEditSubjects(parsed)
+    setEditingTeacher(user)
+  }
+
+  const handleSaveEditSubjects = async () => {
+    setSavingEdit(true)
+    try {
+      const subjectsStr = editSubjects.map(s => `${s.name} (Sem ${s.sem || 0})`).join(',')
+      await updateTeacherSubjects(editingTeacher.uid, subjectsStr)
+      setUserList(prev => prev.map(u => u.uid === editingTeacher.uid ? { ...u, subjects: subjectsStr } : u))
+      setStatus({ type: 'success', msg: `Subjects updated for ${editingTeacher.name}` })
+      setEditingTeacher(null)
+    } catch (err) {
+      setStatus({ type: 'error', msg: err.message })
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -635,7 +694,7 @@ function UserManager() {
                     }}>
                       <span style={{ fontSize: '0.68rem', opacity: 0.7 }}>{s.code}</span>
                       {s.name}
-                      <button type="button" onClick={() => setSelectedSubjects(p => p.filter(x => x.code !== s.code))}
+                      <button type="button" onClick={() => setSelectedSubjects(p => p.filter(x => x.name !== s.name))}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ea580c', display: 'flex', padding: 0, opacity: 0.6 }}>
                         <Trash2 size={11} />
                       </button>
@@ -646,7 +705,7 @@ function UserManager() {
 
               {/* Catalogue checklist grouped by semester */}
               <div className="card" style={{ padding: '0.9rem', maxHeight: 260, overflowY: 'auto' }}>
-                {[1,2,3,4,5,6,7].map(sem => {
+                {[3,4,5,6,7,8].map(sem => {
                   const semSubjects = AIML_SUBJECT_CATALOGUE.filter(s => s.sem === sem)
                   return (
                     <div key={sem} style={{ marginBottom: '0.75rem' }}>
@@ -655,7 +714,7 @@ function UserManager() {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
                         {semSubjects.map(subj => {
-                          const checked = selectedSubjects.some(s => s.code === subj.code)
+                          const checked = selectedSubjects.some(s => s.name === subj.name)
                           return (
                             <label key={subj.code} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', padding: '0.2rem 0' }}>
                               <input type="checkbox" className="checkbox"
@@ -697,7 +756,7 @@ function UserManager() {
                       const name = customSubjectName.trim()
                       const code = customSubjectCode.trim() || `CUSTOM-${Date.now()}`
                       if (!name) return
-                      if (selectedSubjects.some(s => s.code === code)) return
+                      if (selectedSubjects.some(s => s.name === name)) return
                       setSelectedSubjects(p => [...p, { code, name, sem: 0 }])
                       setCustomSubjectName('')
                       setCustomSubjectCode('')
@@ -814,30 +873,170 @@ function UserManager() {
                       </span>
                     </div>
                     <div className="text-muted text-xs" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.15rem' }}>
-                      {u.email} {u.usn ? `• USN: ${u.usn}` : ''} {u.semester ? `• Sem ${u.semester}` : ''}
+                      {u.email} {u.usn ? `• USN: ${u.usn}` : ''} {u.role === 'student' && u.semester ? `• Sem ${u.semester}` : ''}
                     </div>
                   </div>
 
-                  {/* Revoke button */}
-                  {!isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => handleRevoke(u)}
-                      disabled={isBusy}
-                      className="btn btn-danger btn-sm"
-                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                      title="Revoke and delete account"
-                    >
-                      {isBusy ? <Loader size={13} className="spin-anim" /> : <Trash2 size={13} />}
-                      {isBusy ? 'Revoking...' : 'Revoke'}
-                    </button>
-                  )}
+                  {/* Revoke & Edit buttons */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {isTeacher && (
+                      <button
+                        type="button"
+                        onClick={() => handleEditSubjects(u)}
+                        disabled={isBusy}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                        title="Edit Assigned Subjects"
+                      >
+                        <Edit size={13} />
+                        Edit
+                      </button>
+                    )}
+                    {!isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleRevoke(u)}
+                        disabled={isBusy}
+                        className="btn btn-danger btn-sm"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                        title="Revoke and delete account"
+                      >
+                        {isBusy ? <Loader size={13} className="spin-anim" /> : <Trash2 size={13} />}
+                        {isBusy ? 'Revoking...' : 'Revoke'}
+                      </button>
+                    )}
+                  </div>
                 </motion.div>
               )
             })}
           </div>
         )}
       </div>
+
+      {/* Edit Subjects Modal */}
+      {editingTeacher && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+        }}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem',
+              width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Edit size={20} color="var(--color-orange)" />
+                Edit Subjects for {editingTeacher.name}
+              </h2>
+              <button onClick={() => setEditingTeacher(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Selected subjects tags */}
+            {editSubjects.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
+                {editSubjects.map(s => (
+                  <span key={s.code} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    padding: '0.25rem 0.6rem', borderRadius: 0, fontSize: '0.78rem', fontWeight: 600,
+                    background: 'rgba(247,127,50,0.1)', color: '#ea580c',
+                    border: '1px solid rgba(247,127,50,0.2)',
+                  }}>
+                    <span style={{ fontSize: '0.68rem', opacity: 0.7 }}>{s.code}</span>
+                    {s.name}
+                    <button type="button" onClick={() => setEditSubjects(p => p.filter(x => x.name !== s.name))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ea580c', display: 'flex', padding: 0, opacity: 0.6 }}>
+                      <Trash2 size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Catalogue checklist grouped by semester */}
+            <div className="card" style={{ padding: '0.9rem', maxHeight: 300, overflowY: 'auto', marginBottom: '1rem' }}>
+              {[3,4,5,6,7,8].map(sem => {
+                const semSubjects = AIML_SUBJECT_CATALOGUE.filter(s => s.sem === sem)
+                return (
+                  <div key={sem} style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#ea580c', letterSpacing: '0.05em', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
+                      Semester {sem}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
+                      {semSubjects.map(subj => {
+                        const checked = editSubjects.some(s => s.name === subj.name)
+                        return (
+                          <label key={subj.code} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', padding: '0.2rem 0' }}>
+                            <input type="checkbox" className="checkbox"
+                              checked={checked}
+                              onChange={e => {
+                                if (e.target.checked) setEditSubjects(p => [...p, subj])
+                                else setEditSubjects(p => p.filter(s => s.code !== subj.code))
+                              }}
+                            />
+                            <span style={{ fontSize: '0.8rem' }}>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginRight: '0.25rem' }}>{subj.code}</span>
+                              {subj.name}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Add custom subject */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                Add custom subject
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input className="input" placeholder="Course code (e.g. 21AI801)" value={editCustomCode}
+                  onChange={e => setEditCustomCode(e.target.value)}
+                  style={{ flex: '0 0 180px' }}
+                />
+                <input className="input" placeholder="Subject name" value={editCustomName}
+                  onChange={e => setEditCustomName(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button type="button" className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const name = editCustomName.trim()
+                    const code = editCustomCode.trim() || `CUSTOM-${Date.now()}`
+                    if (!name) return
+                    if (editSubjects.some(s => s.name === name)) return
+                    setEditSubjects(p => [...p, { code, name, sem: 0 }])
+                    setEditCustomName('')
+                    setEditCustomCode('')
+                  }}
+                >
+                  <Plus size={14} /> Add
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingTeacher(null)} className="btn btn-secondary" disabled={savingEdit}>
+                Cancel
+              </button>
+              <button onClick={handleSaveEditSubjects} className="btn btn-primary" disabled={savingEdit}>
+                {savingEdit ? <Loader size={16} className="spin-anim" /> : <Save size={16} />}
+                {savingEdit ? 'Saving...' : 'Save Subjects'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
     </div>
   )
 }
@@ -1000,269 +1199,6 @@ function TimetableAccess() {
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// TIMETABLE MANAGER
-// ══════════════════════════════════════════════════════════════════════════
-function TimetableManager() {
-  const [subjects, setSubjects]   = useState(AIML_SUBJECTS)
-  const [customSubject, setCustomSubject] = useState('')
-  const [timeslots, setTimeslots] = useState(['9:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'])
-  const [newTime, setNewTime]     = useState('')
-  const [schedule, setSchedule]   = useState(null)
-  const [loading, setLoading]     = useState(false)
-  const [saved, setSaved]         = useState(false)
-  const [selectedSem, setSelectedSem] = useState('AIML-SEM5')
-
-  // Live teacher accounts
-  const [allTeachers, setAllTeachers]         = useState([])
-  const [loadingTeachers, setLoadingTeachers] = useState(true)
-  // Per-slot assignments: { 'Monday-9:00': ['Name1','Name2'], ... }
-  const [slotTeachers, setSlotTeachers]       = useState({})
-
-  // Fetch real teacher accounts once
-  useEffect(() => {
-    fetchTeacherAccounts()
-      .then(setAllTeachers)
-      .catch(() => setAllTeachers([]))
-      .finally(() => setLoadingTeachers(false))
-  }, [])
-
-  // Load existing timetable when semester changes
-  useEffect(() => {
-    setSchedule(null)
-    setSaved(false)
-    setSlotTeachers({})
-    async function load() {
-      try {
-        const token = await getToken()
-        const data  = await getTimetable(selectedSem, token)
-        if (data?.schedule) {
-          setSchedule(data.schedule)
-          const existing = {}
-          for (const dayData of data.schedule) {
-            for (const slot of (dayData.slots || [])) {
-              const key = `${dayData.day}-${slot.time}`
-              if (slot.teachers) existing[key] = slot.teachers
-              else if (slot.teacher) existing[key] = [slot.teacher]
-            }
-          }
-          setSlotTeachers(existing)
-        }
-      } catch { setSchedule(null) }
-    }
-    load()
-  }, [selectedSem])
-
-  const handleGenerate = async () => {
-    setLoading(true); setSaved(false)
-    try {
-      const token = await getToken()
-      const data  = await generateTimetable({
-        subjects,
-        teachers: allTeachers.map(t => ({ name: t.name })),
-        rooms: 1, days: DAYS, timeslots, classId: selectedSem,
-      }, token)
-      setSchedule(data.schedule)
-    } catch {
-      const mock = DAYS.map(day => ({
-        day,
-        slots: timeslots.map((time, i) => ({
-          time,
-          subject: subjects[i % subjects.length] || 'Free',
-          teachers: [],
-        })),
-      }))
-      setSchedule(mock)
-    } finally { setLoading(false) }
-  }
-
-  const handleSave = async () => {
-    if (!schedule) return
-    // Merge slotTeachers into schedule before saving
-    const enriched = schedule.map(dayData => ({
-      ...dayData,
-      slots: (dayData.slots || []).map(slot => ({
-        ...slot,
-        teachers: slotTeachers[`${dayData.day}-${slot.time}`] || [],
-      })),
-    }))
-    try {
-      const token = await getToken()
-      await saveTimetable({ schedule: enriched, classId: selectedSem }, token)
-    } catch {}
-    setSaved(true)
-  }
-
-  const updateSlotTeachers = (day, time, teachers) =>
-    setSlotTeachers(prev => ({ ...prev, [`${day}-${time}`]: teachers }))
-
-  const getColor = s => (SUBJECT_COLORS[s] || SUBJECT_COLORS.Default).bg
-  const getText  = s => (SUBJECT_COLORS[s] || SUBJECT_COLORS.Default).text
-
-  return (
-    <div className="admin-section">
-      {/* Config card */}
-      <div className="card admin-card" style={{ marginBottom: '1.5rem' }}>
-        <div className="admin-card-header">
-          <Calendar size={20} />
-          <h2>Timetable Configuration</h2>
-        </div>
-
-        {/* Semester picker */}
-        <div className="admin-form-group">
-          <label className="form-label">Semester</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
-            {AIML_SEMESTERS.map(sem => (
-              <button key={sem.id} type="button"
-                onClick={() => setSelectedSem(sem.id)}
-                className={`sem-pill ${selectedSem === sem.id ? 'active' : ''}`}>
-                {sem.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="tt-config-grid" style={{ marginTop: '1.25rem' }}>
-          {/* Subjects */}
-          <div>
-            <label className="form-label">Subjects</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', margin: '0.5rem 0' }}>
-              {AIML_SUBJECTS.map(subj => (
-                <label key={subj} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input type="checkbox" className="checkbox"
-                    checked={subjects.includes(subj)}
-                    onChange={e => {
-                      if (e.target.checked) setSubjects(p => [...p, subj])
-                      else setSubjects(p => p.filter(s => s !== subj))
-                    }}
-                  />
-                  <span className="text-sm">{subj}</span>
-                </label>
-              ))}
-            </div>
-            <div className="input-row" style={{ marginTop: '0.4rem' }}>
-              <input className="input" placeholder="Custom subject..." value={customSubject}
-                onChange={e => setCustomSubject(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && customSubject.trim()) {
-                    setSubjects(p => [...p, customSubject.trim()])
-                    setCustomSubject('')
-                  }
-                }}
-              />
-              <button className="btn btn-secondary btn-sm" type="button" onClick={() => {
-                if (customSubject.trim()) { setSubjects(p => [...p, customSubject.trim()]); setCustomSubject('') }
-              }}><Plus size={14} /></button>
-            </div>
-          </div>
-
-          {/* Timings */}
-          <div>
-            <label className="form-label">Timings</label>
-            <div className="tag-list" style={{ margin: '0.5rem 0' }}>
-              {timeslots.map((t, i) => (
-                <span key={i} className="tag">
-                  {t}
-                  <button onClick={() => setTimeslots(p => p.filter((_, j) => j !== i))}><Trash2 size={10} /></button>
-                </span>
-              ))}
-            </div>
-            <div className="input-row">
-              <input className="input" placeholder="Add time (e.g. 10:15)" value={newTime}
-                onChange={e => setNewTime(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && newTime.trim()) { setTimeslots(p => [...p, newTime.trim()]); setNewTime('') } }}
-              />
-              <button className="btn btn-secondary btn-sm" type="button" onClick={() => {
-                if (newTime.trim()) { setTimeslots(p => [...p, newTime.trim()]); setNewTime('') }
-              }}><Plus size={14} /></button>
-            </div>
-          </div>
-        </div>
-
-        {/* Teacher availability indicator */}
-        <div style={{ marginTop: '1rem', padding: '0.75rem', borderRadius: 0, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {loadingTeachers
-            ? <><Loader size={13} className="spin-anim" color="var(--text-muted)" /><span className="text-xs text-muted">Loading teacher accounts...</span></>
-            : <><Users2 size={13} color="#ea580c" /><span className="text-xs" style={{ color: '#ea580c', fontWeight: 600 }}>{allTeachers.length} teacher account{allTeachers.length !== 1 ? 's' : ''} available for assignment</span></>
-          }
-        </div>
-
-        {/* Actions */}
-        <div className="tt-actions" style={{ marginTop: '1rem' }}>
-          <button className="btn btn-primary" onClick={handleGenerate} disabled={loading}>
-            {loading ? <Loader size={16} className="spin-anim" /> : <Wand2 size={16} />}
-            {loading ? 'Generating...' : 'Generate Timetable'}
-          </button>
-          {schedule && (
-            <button className="btn btn-secondary" onClick={handleSave}>
-              <Save size={16} />
-              {saved ? 'Saved!' : 'Save Timetable'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Schedule preview with teacher assignment */}
-      {schedule ? (
-        <motion.div className="tt-grid-wrapper" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h2 className="section-title">
-            Weekly Schedule · {AIML_SEMESTERS.find(s => s.id === selectedSem)?.label || selectedSem}
-          </h2>
-          <div className="tt-grid">
-            <div className="tt-header-cell tt-time-header">Time</div>
-            {DAYS.map(d => <div key={d} className="tt-header-cell">{d}</div>)}
-            {schedule[0]?.slots.map(s => s.time).map(time => (
-              <React.Fragment key={time}>
-                {time === '12:00' && (
-                  <div key={`break-${time}`} className="tt-break-row" style={{ gridColumn: '1 / -1' }}>Lunch Break</div>
-                )}
-                <div key={time} className="tt-time-cell">{time}</div>
-                {DAYS.map(day => {
-                  const slot  = schedule.find(d => d.day === day)?.slots?.find(s => s.time === time)
-                  const key   = `${day}-${time}`
-                  const assigned = slotTeachers[key] || []
-                  return (
-                    <div key={key} className="tt-cell"
-                      style={slot?.subject ? { background: getColor(slot.subject), color: getText(slot.subject), flexDirection: 'column', alignItems: 'stretch', gap: '0.3rem', padding: '0.5rem' } : { padding: '0.5rem' }}>
-                      {slot?.subject && (
-                        <>
-                          <span className="tt-subject">{slot.subject}</span>
-                          <TeacherPicker
-                            allTeachers={allTeachers}
-                            selected={assigned}
-                            onChange={teachers => updateSlotTeachers(day, time, teachers)}
-                          />
-                          {assigned.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem' }}>
-                              {assigned.map(name => (
-                                <span key={name} style={{
-                                  fontSize: '0.6rem', padding: '0.1rem 0.35rem', borderRadius: 0,
-                                  background: getText(slot.subject) + '22', color: getText(slot.subject), fontWeight: 600,
-                                }}>
-                                  {name.split(' ').slice(-1)[0]}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-        </motion.div>
-      ) : (
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem' }}>
-          <Calendar size={48} color="var(--text-muted)" style={{ opacity: 0.4 }} />
-          <p className="text-muted">Select a semester and click Generate to create the timetable</p>
-        </div>
-      )}
     </div>
   )
 }

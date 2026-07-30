@@ -1,6 +1,6 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -15,6 +15,10 @@ import Admin from './pages/Admin'
 import Chatbot from './pages/Chatbot'
 import Quiz from './pages/Quiz'
 import TimetableManage from './pages/TimetableManage'
+import Profile from './pages/Profile'
+import TeacherPerformance from './pages/TeacherPerformance'
+import CodeITList from './pages/CodeITList'
+import CodeITEditor from './pages/CodeITEditor'
 import './services/i18n'
 
 
@@ -25,22 +29,21 @@ function RootRedirect() {
 
 function AppLayout({ children }) {
   const { profile } = useAuth()
-  const isAdmin = profile?.role === 'admin'
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+  
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (location.pathname === '/learning' || location.pathname === '/quiz' || location.pathname.startsWith('/codeit/')) return false
+    return window.innerWidth > 768
+  })
 
-  if (isAdmin) {
-    return (
-      <div className="page-layout admin-layout">
-        <div className="main-content" style={{ marginLeft: 0, width: '100%' }}>
-          <Navbar onMenuClick={() => {}} />
-          {children}
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (location.pathname === '/learning' || location.pathname === '/quiz' || location.pathname.startsWith('/codeit/')) {
+      setSidebarOpen(false)
+    }
+  }, [location.pathname])
 
   return (
-    <div className="page-layout">
+    <div className={`page-layout ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <Sidebar className={sidebarOpen ? 'open' : ''} />
       <div className="main-content">
         <Navbar onMenuClick={() => setSidebarOpen(o => !o)} />
@@ -69,6 +72,16 @@ export default function App() {
                 <AppLayout><Learning /></AppLayout>
               </ProtectedRoute>
             } />
+            <Route path="/codeit" element={
+              <ProtectedRoute>
+                <AppLayout><CodeITList /></AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/codeit/:problemId" element={
+              <ProtectedRoute>
+                <AppLayout><CodeITEditor /></AppLayout>
+              </ProtectedRoute>
+            } />
             <Route path="/attendance" element={
               <ProtectedRoute>
                 <AppLayout><Attendance /></AppLayout>
@@ -82,6 +95,11 @@ export default function App() {
             <Route path="/timetable-manage" element={
               <ProtectedRoute>
                 <AppLayout><TimetableManage /></AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/performance" element={
+              <ProtectedRoute>
+                <AppLayout><TeacherPerformance /></AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/chatbot" element={
@@ -98,6 +116,12 @@ export default function App() {
             <Route path="/admin" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AppLayout><Admin /></AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <AppLayout><Profile /></AppLayout>
               </ProtectedRoute>
             } />
 

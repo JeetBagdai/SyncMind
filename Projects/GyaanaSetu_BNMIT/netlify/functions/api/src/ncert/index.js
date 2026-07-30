@@ -91,13 +91,13 @@ async function postQuizResult(req, res) {
 async function generateQuiz(req, res) {
   try {
     await verifyToken(req)
-    const { grade, subject, chapter } = req.query
-    if (!grade || !subject || !chapter) {
-      return res.status(400).json({ error: 'grade, subject, and chapter required' })
+    const { semester, subject, module } = req.query
+    if (!semester || !subject || !module) {
+      return res.status(400).json({ error: 'semester, subject, and module required' })
     }
 
-    const prompt = `You are an expert NCERT examiner for Grade ${grade} ${subject}.
-Generate exactly 20 questions for the chapter "${chapter}".
+    const prompt = `You are an expert Engineering Professor for Semester ${semester} ${subject}.
+Generate exactly 20 college-level questions for the module "${module}".
 You MUST respond with a valid JSON object containing a single key "questions" which is an array of 20 question objects.
 The questions MUST follow this exact distribution:
 - 10 MCQs (Direct factual questions)
@@ -114,7 +114,7 @@ For each question object, use this exact structure:
   "question": "<The question text. For case-based, include the scenario here.>",
   "options": ["<A>", "<B>", "<C>", "<D>"], // Required ONLY if type is "mcq". For subjective, omit this completely.
   "correctIndex": <0, 1, 2, or 3>, // Required ONLY if type is "mcq". For subjective, omit this completely.
-  "expectedAnswer": "<For subjective: detailed NCERT expected answer and key points. For MCQ: short explanation.>"
+  "expectedAnswer": "<For subjective: detailed college-level expected answer and key technical points. For MCQ: short technical explanation.>"
 }`
 
     const completion = await groq.chat.completions.create({
@@ -142,17 +142,17 @@ async function evaluateAnswer(req, res) {
       return res.status(400).json({ error: 'Missing required fields' })
     }
 
-    const prompt = `You are an expert NCERT teacher. 
-A student has submitted a handwritten answer to the following question:
+    const prompt = `You are an expert Engineering Professor. 
+A college student has submitted a handwritten answer to the following question:
 Question: "${question}"
-Expected NCERT Answer/Key Points: "${expectedAnswer}"
+Expected Technical Answer/Key Points: "${expectedAnswer}"
 
 Please read the attached handwritten answer.
 Evaluate it against the expected answer and provide a JSON response with this exact structure:
 {
   "score": <number out of 5 based on how well it matches the expected points>,
-  "feedback": "<Short constructive feedback on what they got right>",
-  "missedPoints": "<What exact key NCERT points or keywords they missed, if any>"
+  "feedback": "<Short constructive technical feedback on what they got right>",
+  "missedPoints": "<What exact key engineering points, formulas, or keywords they missed, if any>"
 }
 Ensure the response is ONLY valid JSON, no markdown formatting like \`\`\`json.`
 

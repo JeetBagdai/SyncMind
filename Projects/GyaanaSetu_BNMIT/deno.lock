@@ -14,6 +14,7 @@
         "npm:@eslint/js@^10.0.1",
         "npm:@google-cloud/storage@^7.19.0",
         "npm:@google/generative-ai@~0.24.1",
+        "npm:@monaco-editor/react@^4.7.0",
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.14",
         "npm:@vitejs/plugin-react@^6.0.1",
@@ -34,10 +35,13 @@
         "npm:react-dom@^19.2.5",
         "npm:react-draggable@^4.7.0",
         "npm:react-i18next@^17.0.4",
+        "npm:react-markdown@^10.1.0",
         "npm:react-pdf@^10.4.1",
+        "npm:react-resizable-panels@^4.12.2",
         "npm:react-router-dom@^7.14.2",
         "npm:react@^19.2.5",
-        "npm:vite@^8.0.10"
+        "npm:vite@^8.0.10",
+        "npm:xlsx@~0.18.5"
       ]
     }
   }
