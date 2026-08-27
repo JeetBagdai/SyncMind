@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.db
+chroma_db/
+rqlite/
+rqlite.zip
+rqlite_data/
+OllamaSetup.exe
+.env
+*.log
