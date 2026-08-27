@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncMind | Enterprise AI Workbench</title>
+    <!-- Tailwind for rapid layout, minimalist styles -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- GSAP for layout transitions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Anime.js for micro-interactions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d0d0d;
+            color: #f1f1f1;
+            overflow: hidden; /* App-like feel */
+        }
+        /* Minimalist scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .tab-content { display: none; opacity: 0; }
+        .tab-content.active { display: flex; opacity: 1; }
+        
+        .message-enter { opacity: 0; transform: translateY(10px); }
+        
+        input, textarea {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: white;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #555;
+            box-shadow: 0 0 10px rgba(255,255,255,0.05);
+        }
+        .luxury-button {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 1px solid #3a3a3a;
+            transition: all 0.3s ease;
+        }
+        .luxury-button:hover {
+            border-color: #5a5a5a;
+        }
+        
+        .markdown-body pre {
+            background-color: #111;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #222;
+            overflow-x: auto;
+        }
+        .markdown-body code {
+            font-family: monospace;
+            background-color: #222;
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.2rem;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col antialiased">
+
+    <!-- Top Navigation -->
+    <nav class="h-16 border-b border-zinc-800 flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+            <h1 class="text-xl font-light tracking-wide text-zinc-200">SyncMind <span class="text-zinc-500 font-medium">Workbench</span></h1>
+        </div>
+        <div class="flex gap-1" id="tabs">
+            <button class="tab-btn px-4 py-2 rounded-md text-sm text-zinc-400 hover:text-white transition-colors active-tab font-medium" data-target="chat-view">Chat</button>
+            <button class="tab-btn px-4 py-2 rounded-md text-sm text-zinc-400 hover:text-white transition-colors font-medium" data-target="thought-view">Agent Log</button>
+            <button class="tab-btn px-4 py-2 rounded-md text-sm text-zinc-400 hover:text-white transition-colors font-medium" data-target="workspace-view">Workspace</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-hidden relative">
+        
+        <!-- Chat View -->
+        <div id="chat-view" class="tab-content active h-full flex-col">
+            <div id="chat-history" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
+                <div class="text-center text-zinc-500 text-sm mt-10">
+                    <p>Connected to secure local GPU cluster.</p>
+                    <p class="mt-2 text-xs">Model: Qwen2.5 (Air-Gapped)</p>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="p-4 border-t border-zinc-800 bg-black/50 shrink-0">
+                <form id="chat-form" class="max-w-4xl mx-auto flex gap-3 relative">
+                    <input type="text" id="user-input" class="w-full rounded-lg px-4 py-3 text-sm" placeholder="Ask a question, query the SOP, or request a Python script..." autocomplete="off">
+                    <button type="submit" class="luxury-button px-6 py-2 rounded-lg text-sm font-medium interactive-el">Send</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Thought Stream View -->
+        <div id="thought-view" class="tab-content h-full flex-col p-6 overflow-y-auto">
+            <h2 class="text-lg font-light mb-4 border-b border-zinc-800 pb-2">Agent Thought Stream</h2>
+            <div id="thought-log" class="space-y-3 font-mono text-xs text-zinc-400">
+                <div class="p-3 border border-zinc-800 bg-zinc-900/30 rounded">Agent initialized and standing by.</div>
+            </div>
+        </div>
+
+        <!-- Workspace View -->
+        <div id="workspace-view" class="tab-content h-full flex-col p-6 overflow-y-auto">
+            <h2 class="text-lg font-light mb-4 border-b border-zinc-800 pb-2">Generated Deliverables</h2>
+            <div id="file-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="text-zinc-500 text-sm col-span-full">No files generated yet. Ask the agent to create a Word or PPT file.</div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="/app.js"></script>
+</body>
+</html>
