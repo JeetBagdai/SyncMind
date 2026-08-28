@@ -22,7 +22,7 @@ async def get_available_node():
         return random.choice(idle_nodes)
     return random.choice(OLLAMA_NODES) 
 
-async def call_llm(messages: list, use_vision: bool = False, temperature: float = 0.2, stream_callback=None) -> str:
+async def call_llm(messages: list, use_vision: bool = False, temperature: float = 0.2, stream_callback=None, stop: list = None) -> str:
     """
     Routes the request to the smartest available node in the Ollama swarm.
     """
@@ -40,8 +40,13 @@ async def call_llm(messages: list, use_vision: bool = False, temperature: float 
         "model": model,
         "messages": messages,
         "stream": False,
-        "temperature": temperature
+        "options": {
+            "temperature": temperature
+        }
     }
+    
+    if stop:
+        payload["options"]["stop"] = stop
 
     try:
         async with httpx.AsyncClient(timeout=180.0) as client:

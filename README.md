@@ -24,10 +24,11 @@ SyncMind provides a **self-hosted, air-gapped AI Swarm**. Instead of requiring a
 ### Core Architecture
 
 - **Smart Ollama Router (Swarm Load Balancing):** The backend dynamically tracks which laptops on the network are busy or idle, distributing heavy AI calculations across the team's GPUs in real-time.
-- **Raft Consensus Database (rqlite):** Uses a distributed, masterless database. All connected laptops share the exact same context and chat history, ensuring high availability even if a node disconnects.
+- **Raft Consensus Database (rqlite):** Uses a distributed, masterless database. All connected laptops share the exact same context, multi-session chat history, and files, ensuring high availability even if a node disconnects.
 - **ReAct Agent Loop:** SyncMind plans multi-step work, autonomously deciding when to search internal documents or execute code to solve complex queries.
 - **Code Execution Sandbox:** A secure Python subprocess that allows the LLM to write code, execute it locally, and generate real physical deliverables (Excel, Word, Scripts) for the user to download.
-- **RAG Knowledge Base:** Connects to organizational manuals, SOPs, and past correspondence via a local Vector DB (ChromaDB) with zero external network calls.
+- **Dual Workspace Modes (Team & Personal):** Provides users the ability to seamlessly toggle between shared collaborative 'Team' sessions and isolated 'Personal' sessions synced to their unique device ID.
+- **Sleek Enterprise UI:** A modern, popup-free Tailwind interface supporting multi-chat sessions, dynamic categories, pinned conversations, and inline prompt editing.
 
 ---
 

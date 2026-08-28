@@ -24,11 +24,13 @@ class SandboxExecutor:
         with open(script_path, "w", encoding="utf-8") as f:
             f.write(code)
             
+        import sys
+
         try:
             # Run the script with cwd set to the run_dir
             # This ensures any relative file writes stay in the run_dir
             process = subprocess.Popen(
-                ["python", "agent_script.py"],
+                [sys.executable, "agent_script.py"],
                 cwd=run_dir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
