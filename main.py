@@ -4,7 +4,15 @@ from fastapi.responses import FileResponse
 import json
 import base64
 import os
+import shutil
 from context import ContextStore
+from document_processor import DocumentProcessor
+from rag.search import add_document_to_rag
+from network_monitor import install_network_monitor, network_log
+import router
+
+# Install the air-gap monitor before anything else starts
+install_network_monitor()
 
 app = FastAPI()
 store = ContextStore()
@@ -50,6 +58,40 @@ def update_chat(chat_id: str, body: dict = Body(...)):
 def delete_chat(chat_id: str):
     store.delete_chat(chat_id)
     return {"status": "ok"}
+
+@app.post("/api/upload/{chat_id}")
+async def upload_file(chat_id: str, file: UploadFile = File(...)):
+    """Uploads a file, processes it through OCR/extraction, and adds to RAG context."""
+    os.makedirs("data/uploads", exist_ok=True)
+    file_path = os.path.join("data/uploads", file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    extracted_text = await DocumentProcessor.process_file(file_path)
+    if extracted_text and not extracted_text.startswith("Error"):
+        add_document_to_rag(extracted_text, filename=file.filename, chat_id=chat_id)
+        
+    return {"filename": file.filename, "path": file_path, "status": "processed"}
+
+@app.get("/api/network-log")
+def get_network_log():
+    """Returns the rolling log of intercepted network calls to prove air-gapped isolation."""
+    return network_log
+
+@app.get("/api/swarm-status")
+def get_swarm_status():
+    """Returns the current status of all nodes in the Ollama swarm."""
+    nodes = []
+    for node in router.OLLAMA_NODES:
+        nodes.append({
+            "node": node,
+            "status": router.node_status[node],
+            "last_task": router.node_last_task[node],
+            "model": router.node_models[node],
+            "requests": router.node_requests[node]
+        })
+    return {"nodes": nodes}
 
 @app.get("/download")
 async def download_file(path: str):

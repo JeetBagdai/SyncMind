@@ -666,3 +666,135 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize WebSocket after all handlers are defined
     window.setWorkspaceMode(window.currentWorkspaceMode);
 });
+
+
+// --- Swarm and Network Monitoring ---
+
+async function fetchSwarmStatus() {
+    try {
+        const res = await fetch('/api/swarm-status');
+        const data = await res.json();
+        const grid = document.getElementById('swarm-grid');
+        if (!grid) return;
+        
+        grid.innerHTML = '';
+        data.nodes.forEach(node => {
+            const isBusy = node.status === 'busy';
+            const color = isBusy ? 'text-yellow-400' : 'text-green-400';
+            const border = isBusy ? 'border-yellow-900/50' : 'border-zinc-800';
+            
+            grid.innerHTML += `
+                <div class="p-4 rounded-lg bg-black border ${border}">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="font-mono text-sm text-zinc-300 truncate w-3/4">${node.node}</div>
+                        <div class="text-xs font-bold ${color}">${node.status.toUpperCase()}</div>
+                    </div>
+                    <div class="text-xs text-zinc-500">Model: <span class="text-zinc-300">${node.model}</span></div>
+                    <div class="text-xs text-zinc-500">Last Task: <span class="text-zinc-300">${node.last_task}</span></div>
+                    <div class="text-xs text-zinc-500">Requests: <span class="text-zinc-300">${node.requests}</span></div>
+                </div>
+            `;
+        });
+    } catch (e) {
+        console.error("Error fetching swarm status", e);
+    }
+}
+
+async function fetchNetworkLog() {
+    try {
+        const res = await fetch('/api/network-log');
+        const logs = await res.json();
+        const tbody = document.getElementById('network-log-body');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        logs.forEach(log => {
+            const color = log.status.includes('BLOCKED') ? 'text-red-400' : 'text-green-400';
+            tbody.innerHTML += `
+                <tr class="border-b border-zinc-800/50 hover:bg-zinc-900/30">
+                    <td class="py-2 text-zinc-500">${log.timestamp}</td>
+                    <td class="py-2 text-zinc-300">${log.method}</td>
+                    <td class="py-2 text-zinc-300 truncate max-w-xs" title="${log.url}">${log.url}</td>
+                    <td class="py-2 text-right ${color} font-bold">${log.status}</td>
+                </tr>
+            `;
+        });
+    } catch (e) {
+        console.error("Error fetching network log", e);
+    }
+}
+
+// Poll every 5 seconds
+setInterval(fetchSwarmStatus, 5000);
+setInterval(fetchNetworkLog, 5000);
+// Initial fetch
+fetchSwarmStatus();
+fetchNetworkLog();
+
+
+// --- File Upload Logic ---
+const fileUpload = document.getElementById('file-upload');
+if (fileUpload) {
+    fileUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file || !window.currentChatId) return;
+        
+        const userInput = document.getElementById('user-input');
+        const oldPlaceholder = userInput.placeholder;
+        userInput.placeholder = "Uploading & processing document (OCR)... Please wait.";
+        userInput.disabled = true;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const res = await fetch(`/api/upload/${window.currentChatId}`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            // Add a visual indicator to the chat that a file was uploaded
+            const chatHistory = document.getElementById('chat-history');
+            const fileMsg = document.createElement('div');
+            fileMsg.className = "p-3 mb-2 rounded border border-zinc-800 bg-zinc-900/50 text-xs text-zinc-400 flex items-center gap-2";
+            fileMsg.innerHTML = `<svg class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Document uploaded and processed into RAG context: <span class="text-white">${data.filename}</span>`;
+            chatHistory.appendChild(fileMsg);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            
+        } catch (err) {
+            console.error("Upload error", err);
+            alert("Error uploading file.");
+        } finally {
+            userInput.placeholder = oldPlaceholder;
+            userInput.disabled = false;
+            e.target.value = ''; // reset
+        }
+    });
+}
+
+// --- Demo Scripts ---
+window.runDemo = async function(demoId) {
+    if (!window.currentChatId) {
+        alert("Please select or create a chat session first.");
+        return;
+    }
+    
+    // Switch to Chat tab
+    document.querySelector('.tab-btn[data-target="chat-view"]').click();
+    
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    
+    if (demoId === 'A') {
+        userInput.value = "Load the sample_report.pdf, read its contents via RAG, and draft a formal approval note as a Word (.docx) file summarizing the findings.";
+    } else if (demoId === 'B') {
+        userInput.value = "Write a python script in the sandbox to read sample_data.csv, compute the mean, max, and min for each numeric column, and save the output as an Excel (.xlsx) file. I need the Excel file.";
+    } else if (demoId === 'C') {
+        userInput.value = "Analyze the sample_diagram.png using the vision model and extract all labels and equipment tags.";
+    }
+    
+    setTimeout(() => {
+        sendBtn.click();
+    }, 500);
+};
