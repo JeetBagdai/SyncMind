@@ -1410,7 +1410,8 @@ input:focus, textarea:focus {
 /* The whole thing sits in one glass shell so it reads as a window over
    the shader instead of loose text on noise. */
 .ws-panel {
-  max-width: 1100px;
+  max-width: 90%;
+  width: 1400px;
   margin: 0 auto;
   border-radius: 16px;
   border: 1px solid var(--ws-card-border);
@@ -1925,4 +1926,26 @@ input:focus, textarea:focus {
 
 @media (max-width: 620px) {
   .al-view { padding: 6.5rem 0.9rem 1.5rem; }
+}
+
+/* Swarm Status Custom Layout */
+.ws-table-swarm .ws-cols,
+.ws-table-swarm .ws-row {
+  grid-template-columns: 14rem 6rem 11rem minmax(0, 1fr);
+}
+@media (max-width: 860px) {
+  .ws-table-swarm .ws-cols,
+  .ws-table-swarm .ws-row { grid-template-columns: 10rem 5rem minmax(0, 1fr); }
+  .ws-table-swarm .ws-cell-type { display: none; }
+}
+
+/* Network Proof Custom Layout */
+.ws-table-network .ws-cols,
+.ws-table-network .ws-row {
+  grid-template-columns: 14rem minmax(0, 1fr) 10rem;
+}
+@media (max-width: 860px) {
+  .ws-table-network .ws-cols,
+  .ws-table-network .ws-row { grid-template-columns: 10rem minmax(0, 1fr); }
+  .ws-table-network .ws-cell-type { display: none; }
 }
