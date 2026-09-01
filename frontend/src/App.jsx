@@ -226,20 +226,8 @@ export default function App() {
     )
   }, [])
 
-  const [thoughts, setThoughts] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('syncmind_thoughts') || '[]')
-    } catch {
-      return []
-    }
-  })
-  const [files, setFiles] = useState(() => {
-    try {
-      return normalizeFiles(JSON.parse(localStorage.getItem('syncmind_files') || '[]'))
-    } catch {
-      return []
-    }
-  })
+  const [thoughts, setThoughts] = useState([])
+  const [files, setFiles] = useState([])
   const [userInput, setUserInput] = useState('')
   const [isIntroFinished, setIsIntroFinished] = useState(false)
   const [introPlaying, setIntroPlaying] = useState(true)
@@ -414,14 +402,7 @@ export default function App() {
     localStorage.setItem('syncmind_conversations', JSON.stringify(conversations))
   }, [conversations])
 
-  // ---- Persist thoughts/files whenever they change ----
-  useEffect(() => {
-    localStorage.setItem('syncmind_thoughts', JSON.stringify(thoughts))
-  }, [thoughts])
 
-  useEffect(() => {
-    localStorage.setItem('syncmind_files', JSON.stringify(files))
-  }, [files])
 
   // ---- Auto-scroll chat ----
   // stickToBottom stays true while the reader is at the end; it flips off the
@@ -732,13 +713,13 @@ export default function App() {
     setActiveConvId(c.id)
     setActiveTab('chat-view')
     setUserInput('')
-    setSidebarOpen(false)
+    setThoughts([])
+    setFiles([])
   }
 
   function selectChat(id) {
     setActiveConvId(id)
     setActiveTab('chat-view')
-    setSidebarOpen(false)
   }
 
   function togglePin(id, e) {
