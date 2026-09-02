@@ -62,3 +62,12 @@ If a user clicks the **"Demo C: Multimodal Engineering"** button:
 6. The backend suspends the LLM, runs the Python code in the Sandbox, and captures the resulting `.docx` file.
 7. The backend sends the file paths to the frontend, which instantly updates the Workspace tab.
 8. The LLM streams its final conversational response to the user, the pulsing circle disappears, and the user downloads their final document.
+
+### G. Intelligent Swarm Routing
+The backend employs a semantic load balancer (router.py) to classify incoming prompts and route them to the most capable model in the local Swarm network.
+*   **GENERAL Tasks:** Routed to qwen2.5:7b.
+*   **CODING Tasks:** Routed to qwen2.5-coder:7b (a specialized coding variant) for complex python execution.
+*   **QUICK Tasks:** Routed to qwen2.5:1.5b for fast, lightweight responses.
+
+### H. Robust File Tracking (mtime)
+The executor.py sandbox uses a foolproof filesystem modification timestamp (mtime) tracker to capture generated files. By taking a snapshot of all file timestamps before execution and comparing them afterward, the backend accurately pushes overwritten or newly created files directly to the Workspace tab, completely avoiding name-collision bugs.

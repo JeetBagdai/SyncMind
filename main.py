@@ -86,7 +86,9 @@ def get_swarm_status():
     for node in router.OLLAMA_NODES:
         nodes.append({
             "node": node,
-            "status": router.node_status[node],
+            "name": router.OLLAMA_NODES[node]["name"],
+            "status": "busy" if router.node_active[node] > 0 else "idle",
+            "active_tasks": router.node_active[node],
             "last_task": router.node_last_task[node],
             "model": router.node_models[node],
             "requests": router.node_requests[node]
@@ -135,11 +137,13 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
                         "content": content
                     })
                     
+                requested_model = payload.get("model", "Auto")
                 final_answer = await store.run_agent_loop(
                     chat_id=chat_id,
                     user_prompt=user_msg, 
                     image_b64=image_b64, 
-                    stream_callback=stream_callback
+                    stream_callback=stream_callback,
+                    requested_model=requested_model
                 )
                 
                 await broadcast(chat_id, {

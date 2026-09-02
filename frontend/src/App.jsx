@@ -232,6 +232,10 @@ export default function App() {
   const [isIntroFinished, setIsIntroFinished] = useState(false)
   const [introPlaying, setIntroPlaying] = useState(true)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
+  const [selectedModel, setSelectedModel] = useState('Auto')
+  const [showModelMenu, setShowModelMenu] = useState(false)
+  const modelMenuRef = useRef(null)
+  const modelPopoverRef = useRef(null)
   const [attachedFile, setAttachedFile] = useState(null)
   const [isThinking, setIsThinking] = useState(false) // TEMP: HF demo
 
@@ -338,14 +342,18 @@ export default function App() {
       const inToggle = attachMenuRef.current && attachMenuRef.current.contains(event.target)
       const inPopover = attachPopoverRef.current && attachPopoverRef.current.contains(event.target)
       if (!inToggle && !inPopover) setShowAttachMenu(false)
+      
+      const inModel = modelMenuRef.current && modelMenuRef.current.contains(event.target)
+      const inModelPopover = modelPopoverRef.current && modelPopoverRef.current.contains(event.target)
+      if (!inModel && !inModelPopover) setShowModelMenu(false)
     }
-    if (showAttachMenu) {
+    if (showAttachMenu || showModelMenu) {
       document.addEventListener('mousedown', handleClickOutside)
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showAttachMenu])
+  }, [showAttachMenu, showModelMenu])
 
   const addThought = useCallback((type, content) => {
     setThoughts((prev) => [...prev, { type, content }])
@@ -380,8 +388,15 @@ export default function App() {
   // ---- WebSocket connection ----
   useEffect(() => {
     if (!activeConvId) return;
-    const ws = new WebSocket(`ws://${window.location.host}/ws/${activeConvId}`)
-    wsRef.current = ws
+    let reconnectTimer;
+    
+    function connect() {
+      const ws = new WebSocket(`ws://${window.location.host}/ws/${activeConvId}`)
+      wsRef.current = ws
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connect, 2000);
+      }
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)
@@ -395,9 +410,15 @@ export default function App() {
       } else if (['thought', 'action', 'observation', 'status'].includes(data.type)) {
         addThought(data.type, data.content)
       }
+      }
     }
+    connect();
 
-    return () => ws.close()
+    return () => {
+      clearTimeout(reconnectTimer);
+      if (wsRef.current) wsRef.current.close();
+      wsRef.current = null;
+    }
   }, [addThought, activeConvId])
 
   // Keep activeConvId valid (first load / after deletes)
@@ -449,10 +470,18 @@ export default function App() {
             ...personalChats.map(c => formatChat(c, deviceId))
           ]
           
-          setConversations(allChats)
-          if (allChats.length > 0) {
-            setActiveConvId(allChats[0].id)
+          if (allChats.length === 0) {
+            allChats.push({
+              id: Date.now().toString(),
+              title: 'New Conversation',
+              group: 'Personal Workspace',
+              messages: [],
+              owner_id: deviceId
+            })
           }
+          
+          setConversations(allChats)
+          setActiveConvId(allChats[0].id)
       } catch (e) {
           console.error("Failed to load chats", e)
       }
@@ -817,6 +846,17 @@ export default function App() {
     }
   }
 
+  function toggleChatPrivacy(id, ownerType) {
+    const owner = ownerType === 'TEAM' ? 'TEAM' : deviceId
+    const newGroup = owner === 'TEAM' ? 'Team Workspace' : 'Personal Workspace'
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, owner_id: owner, group: newGroup } : c)))
+    fetch(`/api/chats/${id}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ owner_id: owner, category: newGroup })
+    }).catch(()=>null)
+  }
+
   function deleteChat(id, e) {
     if (e) e.stopPropagation()
     setConversations((prev) => {
@@ -919,7 +959,7 @@ export default function App() {
     }
 
     setIsThinking(true);
-      wsRef.current.send(JSON.stringify({ type: 'query', message: fullMessage }))
+      wsRef.current.send(JSON.stringify({ type: 'query', message: fullMessage, model: selectedModel }))
     setUserInput('')
     setAttachedFile(null)
     setShowAttachMenu(false)
@@ -1343,16 +1383,14 @@ export default function App() {
                       className="welcome-reveal-text text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide text-amber-50 my-0"
                     >
                       <span className="wr-word">Welcome</span>{' '}
-                      <span className="wr-word">to</span>{' '}
+              <span className="wr-word">to</span>{' '}
                       <span className="wr-word">Syncmind</span>
                     </h1>
                     
                     {/* SIH DEMO SCENARIOS */}
                     <div className="mt-8 flex flex-wrap justify-center gap-3 pointer-events-auto" style={{ opacity: isIntroFinished ? 1 : 0, transition: 'opacity 1s ease' }}>
                       <button type="button" onClick={() => {
-                        const file = new File(["dummy content"], "sample_data.csv", { type: "text/csv" });
-                        setAttachedFile(file);
-                        setUserInput("Generate a bar chart comparing regional downtime.");
+                        setUserInput("Generate a bar chart comparing regional downtime using sample_data.csv and save it as a PNG file.");
                       }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-sm transition-colors cursor-pointer border border-white/5">
                         Demo A: Analytics
                       </button>
@@ -1364,9 +1402,7 @@ export default function App() {
                       </button>
                       
                       <button type="button" onClick={() => {
-                        const file = new File(["dummy content"], "sample_report.pdf", { type: "application/pdf" });
-                        setAttachedFile(file);
-                        setUserInput("Extract all the key anomalies and write a 1-page summary report in Word format.");
+                        setUserInput("Read sample_report.pdf, extract all the key anomalies, and write a 1-page summary report in Word format.");
                       }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-sm transition-colors cursor-pointer border border-white/5">
                         Demo C: Multimodal
                       </button>
@@ -1415,8 +1451,25 @@ export default function App() {
                   }}
                 />
 
-                <form
-                  id="chat-form"
+                  <div className="relative w-full">
+                    {/* Floating Model Menu */}
+                    {showModelMenu && (
+                      <div ref={modelPopoverRef} className="absolute right-6 bottom-full mb-2 w-40 bg-[#1e1e1e] border border-white/10 rounded-xl shadow-2xl p-1.5 z-[9999] flex flex-col pointer-events-auto">
+                        {['Auto', 'qwen2.5:7b', 'qwen2.5-coder:7b', 'llava'].map(m => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => { setSelectedModel(m); setShowModelMenu(false); }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${selectedModel === m ? 'bg-white/10 text-white font-medium' : 'text-white/60 hover:bg-white/5 hover:text-white/90'}`}
+                          >
+                            {m === 'Auto' ? 'Auto Select (Swarm)' : m}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <form
+                      id="chat-form"
                   onSubmit={handleSubmit}
                   className={`glass-pill flex items-center gap-3 px-4 py-2.5 shadow-2xl chat-bubble-intro ${
                     isIntroFinished ? 'revealed' : ''
@@ -1433,6 +1486,24 @@ export default function App() {
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                       </svg>
+                    </button>
+                  </div>
+
+                  {/* Team/Personal Toggle */}
+                  <div className="shrink-0 flex items-center bg-white/5 rounded-full p-0.5 border border-white/5 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => toggleChatPrivacy(activeConv?.id, 'TEAM')}
+                      className={`px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors ${activeConv?.owner_id === 'TEAM' ? 'bg-[#292929] text-white shadow shadow-black/20' : 'text-white/40 hover:text-white/70'}`}
+                    >
+                      Team
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleChatPrivacy(activeConv?.id, 'PERSONAL')}
+                      className={`px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors ${activeConv?.owner_id !== 'TEAM' ? 'bg-[#292929] text-white shadow shadow-black/20' : 'text-white/40 hover:text-white/70'}`}
+                    >
+                      Personal
                     </button>
                   </div>
 
@@ -1465,6 +1536,20 @@ export default function App() {
                     placeholder="Ask a question, query the SOP, or request a Python script..."
                     autoComplete="off"
                   />
+                  {/* Model Selector */}
+                  <div className="relative shrink-0 flex items-center pr-2" ref={modelMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowModelMenu(p => !p)}
+                      className={`text-[11.5px] font-medium tracking-wide flex items-center gap-1 transition-colors ${showModelMenu ? 'text-white' : 'text-white/70 hover:text-white'}`}
+                    >
+                      {selectedModel === 'Auto' ? 'Auto Select' : selectedModel}
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+
                   <button
                     type="submit"
                     onMouseDown={handlePressStart}
@@ -1478,6 +1563,7 @@ export default function App() {
                     </svg>
                   </button>
                 </form>
+                </div>
               </div>
             </div>
           )
@@ -1665,9 +1751,9 @@ export default function App() {
                   <div className="ws-rows">
                     {swarmStatus?.nodes?.map((node, i) => (
                       <div key={node.node} className="ws-row" role="row">
-                        <span className="ws-cell ws-cell-name" role="cell">
-                          <span className="ws-row-name">{node.node}</span>
-                        </span>
+                          <span className="ws-cell ws-cell-name" role="cell">
+                            <span className="ws-row-name">{node.name || node.node}</span>
+                          </span>
                         <span className="ws-cell ws-cell-date" role="cell" style={{ color: node.status === 'idle' ? '#52D399' : '#C084FC' }}>
                           {node.status}
                         </span>

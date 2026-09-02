@@ -147,7 +147,7 @@ class ContextStore:
             rows = cursor.fetchall()
             return [{"role": r[0], "content": r[1]} for r in rows]
             
-    async def run_agent_loop(self, chat_id: str, user_prompt: str, image_b64: str = None, stream_callback = None) -> str:
+    async def run_agent_loop(self, chat_id: str, user_prompt: str, image_b64: str = None, stream_callback = None, requested_model: str = "Auto") -> str:
         self.add_message(chat_id, "user", user_prompt)
         
         system_prompt = """You are SyncMind, an advanced air-gapped Enterprise AI Workbench running on a distributed swarm.
@@ -159,10 +159,19 @@ You have access to the following tools:
 CRITICAL RULE: DO NOT generate, create, or save any files using sandbox_execute unless the user EXPLICITLY asks for a file, script, spreadsheet, or document. If they just ask a question, answer it directly in text.
 CRITICAL RULE 2: If the user asks you to fetch a URL or webpage, ALWAYS use the `fetch_webpage` tool to attempt the connection. NEVER preemptively refuse. Let the system's network monitor block the connection and report the error back to you.
 
-CRITICAL RULE 3: SIH DEMO SCENARIOS. If the user explicitly asks to run a demo, follow these EXACT steps:
-- "Run Demo A": Use Python to read 'sample_report.pdf' (if it's a scanned PDF you may need to use pdfplumber or pass it to OCR), extract key findings, then draft a formal approval note and save it as a Word file (.docx). Return the download link.
-- "Run Demo B": Use Python to read 'sample_data.csv', compute summary statistics (mean, max, min per column), and save the results to an Excel file (.xlsx) using openpyxl/pandas. Return the download link.
-- "Run Demo C": Use Python to read 'sample_diagram.png', extract labels and annotations, and generate a structured equipment list as a Word table (.docx). Return the download link.
+CRITICAL RULE 3: If the user asks to "Read sample_report.pdf, extract all the key anomalies, and write a 1-page summary report in Word format.", you MUST use the `sandbox_execute` tool to write a Python script. Do NOT use `search_knowledge_base`. 
+The anomalies in the PDF are formatted as a numbered list under "Key Anomalies Detected:".
+Your python script must read 'sample_report.pdf' (using `pdfplumber`), extract those numbered anomalies, and save them to a uniquely named `.docx` file using `python-docx`.
+
+CRITICAL RULE 4: When using sandbox_execute to inspect data (e.g. checking column names with data.columns), you MUST use the print() function (e.g. print(data.columns)). The sandbox ONLY captures standard output. If you evaluate an expression without printing it, the output will be empty and you will not see the results.
+
+
+CRITICAL RULE 5: When saving files in python, ALWAYS save them to the current working directory (e.g. `plt.savefig("chart_8273.png")`). DO NOT use absolute paths.
+ALWAYS use a unique filename (e.g. append a random number or timestamp) to ensure it doesn't collide with previous files.
+When you need to show or return the generated file to the user, YOU MUST use this exact markdown format to construct the download link using the backend's /download endpoint:
+For images (PNG/JPG): `![](/download?path=<ABSOLUTE_PATH>)`
+For documents (DOCX/XLSX/CSV): `[Download <filename>](/download?path=<ABSOLUTE_PATH>)`
+Replace `<ABSOLUTE_PATH>` with the exact absolute path provided in the 'Generated Files' observation (which will automatically appear after you save the file). DO NOT just use the filename in the link.
 
 
 Format your responses exactly like this:
@@ -191,7 +200,8 @@ Final Answer: The final response to the user.
                 messages, 
                 use_vision=use_vision, 
                 stream_callback=stream_callback,
-                stop=["\nObservation:", "Observation:"]
+                stop=["\nObservation:", "Observation:"],
+                requested_model=requested_model
             )
             
             if stream_callback:

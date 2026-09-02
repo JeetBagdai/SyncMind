@@ -43,7 +43,7 @@ async def patched_send(self, request, *args, **kwargs):
     method = request.method
     
     if is_allowed_destination(url):
-        add_log_entry(url, method, "ALLOWED (Internal Swarm)")
+        add_log_entry(url, method, "(internal access call)")
         return await original_send(self, request, *args, **kwargs)
     else:
         add_log_entry(url, method, "BLOCKED (Air-Gapped Policy)")
