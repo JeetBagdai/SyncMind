@@ -41,7 +41,7 @@ def create_chat(body: dict = Body(default={})):
     title = body.get("title", "New Chat")
     category = body.get("category", "Recents")
     owner_id = body.get("owner_id", "TEAM")
-    chat_id = store.create_chat(title=title, category=category, owner_id=owner_id)
+    chat_id = store.create_chat(title=title, category=category, owner_id=owner_id, chat_id=body.get("id"))
     return {"id": chat_id}
 
 @app.put("/api/chats/{chat_id}")

@@ -170,16 +170,16 @@ export default function App() {
   // ---- Conversations (multi-chat + history) ----
   // Every launch opens on a fresh chat (so the welcome screen greets the
   // user), with previous conversations kept below it in the sidebar.
-  const [conversations, setConversations] = useState(() => {
-    let saved = []
-    try {
-      const raw = JSON.parse(localStorage.getItem('syncmind_conversations') || 'null')
-      if (Array.isArray(raw)) saved = raw
-    } catch { /* ignore */ }
-    // Drop leftover empty chats so repeated launches don't pile them up
-    const kept = saved.filter((c) => (c.messages && c.messages.length > 0) || c.pinned)
-    return [blankConv(), ...kept]
+  const [deviceId] = useState(() => {
+    let id = localStorage.getItem('syncmind_device_id')
+    if (!id) {
+      id = uuidv4()
+      localStorage.setItem('syncmind_device_id', id)
+    }
+    return id
   })
+
+  const [conversations, setConversations] = useState([])
   // null -> falls through to conversations[0], the fresh chat created above
   const [activeConvId, setActiveConvId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -296,6 +296,11 @@ export default function App() {
     e?.stopPropagation()
     if (editGroupTitle.trim()) {
       setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, group: editGroupTitle.trim() } : c)))
+      fetch(`/api/chats/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ category: editGroupTitle.trim() })
+      }).catch(()=>null)
     }
     setEditingGroupId(null)
   }
@@ -374,15 +379,18 @@ export default function App() {
 
   // ---- WebSocket connection ----
   useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.host}/ws/SIH-DEMO`)
+    if (!activeConvId) return;
+    const ws = new WebSocket(`ws://${window.location.host}/ws/${activeConvId}`)
     wsRef.current = ws
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)
 
       if (data.type === 'history') {
+        setIsThinking(false)
         setMessages(data.messages.map((m) => ({ role: m.role, content: m.content })))
       } else if (data.type === 'message') {
+        if (data.message.role === 'assistant') setIsThinking(false)
         setMessages((prev) => [...prev, { role: data.message.role, content: data.message.content }])
       } else if (['thought', 'action', 'observation', 'status'].includes(data.type)) {
         addThought(data.type, data.content)
@@ -390,17 +398,67 @@ export default function App() {
     }
 
     return () => ws.close()
-  }, [addThought])
+  }, [addThought, activeConvId])
 
   // Keep activeConvId valid (first load / after deletes)
   useEffect(() => {
     if (activeConv && activeConv.id !== activeConvId) setActiveConvId(activeConv.id)
   }, [activeConv, activeConvId])
 
-  // ---- Persist conversations ----
+  // ---- Load conversations from API & Migrate old local chats ----
   useEffect(() => {
-    localStorage.setItem('syncmind_conversations', JSON.stringify(conversations))
-  }, [conversations])
+    const loadChats = async () => {
+      // One-time migration for old local chats
+      try {
+        const local = JSON.parse(localStorage.getItem('syncmind_conversations') || 'null')
+        if (Array.isArray(local) && local.length > 0) {
+          for (const c of local) {
+            await fetch('/api/chats', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ id: c.id, title: c.title || 'Local Chat', owner_id: deviceId })
+            }).catch(()=>null)
+          }
+          localStorage.removeItem('syncmind_conversations')
+        }
+      } catch (e) {}
+
+      // Fetch from API
+      try {
+          const [teamRes, personalRes] = await Promise.all([
+            fetch('/api/chats?owner_id=TEAM'),
+            fetch(`/api/chats?owner_id=${deviceId}`)
+          ])
+          const teamChats = await teamRes.json()
+          const personalChats = await personalRes.json()
+    
+          const formatChat = (c, owner) => {
+            let defaultGroup = owner === 'TEAM' ? 'Team Workspace' : 'Personal Workspace'
+            return {
+              id: c.id,
+              title: c.title,
+              group: (c.category && c.category !== 'Recents') ? c.category : defaultGroup,
+              pinned: c.is_pinned,
+              messages: [],
+              owner_id: owner
+            }
+          }
+    
+          const allChats = [
+            ...teamChats.map(c => formatChat(c, 'TEAM')),
+            ...personalChats.map(c => formatChat(c, deviceId))
+          ]
+          
+          setConversations(allChats)
+          if (allChats.length > 0) {
+            setActiveConvId(allChats[0].id)
+          }
+      } catch (e) {
+          console.error("Failed to load chats", e)
+      }
+    }
+    loadChats()
+  }, [deviceId])
 
 
 
@@ -707,34 +765,66 @@ export default function App() {
   }, [activeTab, thoughts.length])
 
   // ---- Chat management ----
-  function newChat() {
-    const c = blankConv()
-    setConversations((prev) => [c, ...prev])
-    setActiveConvId(c.id)
-    setActiveTab('chat-view')
-    setUserInput('')
-    setThoughts([])
-    setFiles([])
+  async function newChat(ownerType) {
+    const owner = ownerType === 'TEAM' ? 'TEAM' : deviceId
+    try {
+        const res = await fetch('/api/chats', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ title: 'New Chat', category: 'Recents', owner_id: owner })
+        })
+        const data = await res.json()
+        const fresh = {
+          id: data.id,
+          title: 'New Chat',
+          messages: [],
+          pinned: false,
+          group: owner === 'TEAM' ? 'Team Workspace' : 'Personal Workspace',
+          owner_id: owner
+        }
+        setConversations((prev) => [fresh, ...prev])
+        setActiveConvId(fresh.id)
+        setUserInput('')
+        setActiveTab('chat-view')
+        setThoughts([])
+        setFiles([])
+        if (window.innerWidth < 768) setSidebarOpen(false)
+    } catch (e) {
+        console.error("Failed to create chat", e)
+    }
   }
 
   function selectChat(id) {
+    if (id !== activeConvId) {
+      setThoughts([])
+      setFiles([])
+    }
     setActiveConvId(id)
     setActiveTab('chat-view')
   }
 
   function togglePin(id, e) {
     if (e) e.stopPropagation()
-    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)))
+    const conv = conversations.find(c => c.id === id)
+    if (conv) {
+      const newPinned = !conv.pinned
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: newPinned } : c)))
+      fetch(`/api/chats/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ is_pinned: newPinned })
+      }).catch(()=>null)
+    }
   }
 
   function deleteChat(id, e) {
     if (e) e.stopPropagation()
     setConversations((prev) => {
       const next = prev.filter((c) => c.id !== id)
-      const result = next.length ? next : [blankConv()]
-      if (id === activeConvId) setActiveConvId(result[0].id)
-      return result
+      if (id === activeConvId && next.length > 0) setActiveConvId(next[0].id)
+      return next
     })
+    fetch(`/api/chats/${id}`, { method: 'DELETE' }).catch(()=>null)
   }
 
   function handleTabClick(targetId) {
@@ -828,7 +918,8 @@ export default function App() {
       }).catch(err => console.error("Upload error:", err))
     }
 
-    wsRef.current.send(JSON.stringify({ type: 'query', message: fullMessage }))
+    setIsThinking(true);
+      wsRef.current.send(JSON.stringify({ type: 'query', message: fullMessage }))
     setUserInput('')
     setAttachedFile(null)
     setShowAttachMenu(false)
@@ -1030,15 +1121,24 @@ export default function App() {
           </button>
         </div>
 
-        <button className="sb-new" onClick={newChat}>
-          <svg className="ic-compose" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-            <path className="ic-compose-pad" strokeLinecap="round" strokeLinejoin="round"
-              d="M18.5 13.2V19a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.8" />
-            <path className="ic-compose-nib" strokeLinecap="round" strokeLinejoin="round"
-              d="M17.4 3.6a1.98 1.98 0 0 1 2.8 2.8l-8.1 8.1-3.5.7.7-3.5 8.1-8.1Z" />
-          </svg>
-          <span>New chat</span>
-        </button>
+        <div className="flex gap-2 w-full px-3 mb-2 mt-4">
+          <button className="sb-new flex-1 text-xs justify-center gap-1.5" style={{padding: '10px 12px'}} onClick={() => newChat('TEAM')}>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span>Team</span>
+          </button>
+          <button className="sb-new flex-1 text-xs justify-center gap-1.5" style={{padding: '10px 12px'}} onClick={() => newChat('PERSONAL')}>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Personal</span>
+          </button>
+        </div>
 
         <nav className="sb-nav">
           {tabs.map((tab) => (
@@ -1063,14 +1163,24 @@ export default function App() {
           </>
         )}
 
-        <div className="sb-section">
-          <span>Chats</span>
-          <span className="sb-count">{otherChats.length}</span>
-        </div>
-
-        <div className="sb-list">
+        <div className="sb-list mt-2 flex flex-col gap-4">
+          {Object.entries(groupedChats).map(([groupName, chats]) => (
+            <div key={groupName}>
+              <div className="sb-section group relative flex items-center justify-between mb-1">
+                <span className="font-semibold text-white/90">{groupName}</span>
+                <span className="sb-count">{chats.length}</span>
+                {chats.length > 0 && (
+                   <button className="absolute right-8 opacity-0 group-hover:opacity-100 hover:text-white transition-opacity" onClick={(e) => startGroupEdit(chats[0], e)}>
+                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15.2 5.2l3.5 3.5M9 11.5V15h3.5l9.5-9.5-3.5-3.5L9 11.5z"/></svg>
+                   </button>
+                )}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {chats.map(renderChatRow)}
+              </div>
+            </div>
+          ))}
           {otherChats.length === 0 && <div className="sb-empty">No other chats</div>}
-          {otherChats.map(renderChatRow)}
         </div>
       </aside>
 
@@ -1209,12 +1319,10 @@ export default function App() {
                     />
                   ))}
 
-                  {/* TEMP: loading indicator — wave of dots */}
+                  {/* TEMP: loading indicator */}
                   {isThinking && (
-                    <div className="rounded-2xl px-5 py-4 bubble-ai self-start flex items-center gap-2">
-                      <span className="typing-dot"></span>
-                      <span className="typing-dot"></span>
-                      <span className="typing-dot"></span>
+                    <div className="flex self-start px-5 py-6 items-center justify-center">
+                      <div className="pulsing-circle" />
                     </div>
                   )}
                 </div>
@@ -1547,7 +1655,7 @@ export default function App() {
                 </div>
               </header>
               <div className="ws-body">
-                <div className="ws-table" role="table">
+                <div className="ws-table ws-table-swarm" role="table">
                   <div className="ws-cols" role="row">
                     <span role="columnheader">Node</span>
                     <span className="ws-cell-date" role="columnheader">Status</span>
@@ -1595,7 +1703,7 @@ export default function App() {
                 </div>
               </header>
               <div className="ws-body">
-                <div className="ws-table" role="table">
+                <div className="ws-table ws-table-network" role="table">
                   <div className="ws-cols" role="row">
                     <span role="columnheader">Timestamp</span>
                     <span className="ws-cell-name" role="columnheader">URL</span>

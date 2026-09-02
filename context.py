@@ -74,12 +74,13 @@ class ContextStore:
                 )
             """)
 
-    def create_chat(self, title="New Chat", category="Recents", owner_id="TEAM"):
-        chat_id = str(uuid.uuid4())
+    def create_chat(self, title="New Chat", category="Recents", owner_id="TEAM", chat_id=None):
+        if not chat_id:
+            chat_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         with self.conn.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO chats (id, title, category, owner_id, updated_at) VALUES (?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO chats (id, title, category, owner_id, updated_at) VALUES (?, ?, ?, ?, ?)",
                 (chat_id, title, category, owner_id, now)
             )
         return chat_id
@@ -157,6 +158,12 @@ You have access to the following tools:
 
 CRITICAL RULE: DO NOT generate, create, or save any files using sandbox_execute unless the user EXPLICITLY asks for a file, script, spreadsheet, or document. If they just ask a question, answer it directly in text.
 CRITICAL RULE 2: If the user asks you to fetch a URL or webpage, ALWAYS use the `fetch_webpage` tool to attempt the connection. NEVER preemptively refuse. Let the system's network monitor block the connection and report the error back to you.
+
+CRITICAL RULE 3: SIH DEMO SCENARIOS. If the user explicitly asks to run a demo, follow these EXACT steps:
+- "Run Demo A": Use Python to read 'sample_report.pdf' (if it's a scanned PDF you may need to use pdfplumber or pass it to OCR), extract key findings, then draft a formal approval note and save it as a Word file (.docx). Return the download link.
+- "Run Demo B": Use Python to read 'sample_data.csv', compute summary statistics (mean, max, min per column), and save the results to an Excel file (.xlsx) using openpyxl/pandas. Return the download link.
+- "Run Demo C": Use Python to read 'sample_diagram.png', extract labels and annotations, and generate a structured equipment list as a Word table (.docx). Return the download link.
+
 
 Format your responses exactly like this:
 Thought: I need to do X...

@@ -66,12 +66,24 @@ class SandboxExecutor:
                             exclude_files.add(up_item)
             
             generated_files = []
-            for file in os.listdir(run_dir):
-                if file not in exclude_files:
+            for root, dirs, files in os.walk(run_dir):
+                for file in files:
+                    # Ignore the agent script itself
+                    if file == "agent_script.py" and root == run_dir:
+                        continue
+                        
+                    rel_path = os.path.relpath(os.path.join(root, file), run_dir)
+                    # Ignore files copied from data_dir
+                    if rel_path in exclude_files or rel_path.split(os.sep)[0] in exclude_files:
+                        continue
+                        
+                    src_path = os.path.join(root, file)
                     # Move generated files back to data/uploads for persistence/downloads
-                    final_path = os.path.join(self.data_dir, "uploads", file)
+                    # We flatten the path or keep the structure, but wait, the prompt says "sample_approval_note.docx"
+                    # We'll just put it in data/uploads/ directly to avoid path issues on the frontend.
+                    final_path = os.path.join(self.data_dir, "uploads", os.path.basename(file))
                     os.makedirs(os.path.dirname(final_path), exist_ok=True)
-                    shutil.copy2(os.path.join(run_dir, file), final_path)
+                    shutil.copy2(src_path, final_path)
                     generated_files.append(final_path)
                     
             return {

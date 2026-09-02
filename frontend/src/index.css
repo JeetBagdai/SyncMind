@@ -424,9 +424,9 @@ input:focus, textarea:focus {
 }
 
 .glass-pill-container.centered {
-  bottom: 50%;
+  bottom: 45%;
   transform: translate(-50%, 50%);
-  max-width: 44rem;
+  max-width: 65rem;
 }
 
 .glass-pill-container.docked {
@@ -467,19 +467,18 @@ input:focus, textarea:focus {
 }
 
 /* TEMP: Hugging Face loading indicator — wave of dots */
-.typing-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-glow);
-  animation: typingWave 1.3s ease-in-out infinite;
+/* Pulsing circle loading indicator */
+.pulsing-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3b82f6; /* Blue */
+  animation: pulseCircle 0.8s ease-in-out infinite;
 }
-.typing-dot:nth-child(2) { animation-delay: 0.18s; }
-.typing-dot:nth-child(3) { animation-delay: 0.36s; }
-@keyframes typingWave {
-  0%, 70%, 100% { transform: translateY(0); opacity: 0.4; }
-  35% { transform: translateY(-7px); opacity: 1; }
+@keyframes pulseCircle {
+  0% { transform: scale(0.5); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.5); opacity: 0.7; }
 }
 
 /* Per-word wrapper for the staggered GSAP reveal. inline-block is required
