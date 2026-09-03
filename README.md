@@ -71,3 +71,26 @@ The backend employs a semantic load balancer (router.py) to classify incoming pr
 
 ### H. Robust File Tracking (mtime)
 The executor.py sandbox uses a foolproof filesystem modification timestamp (mtime) tracker to capture generated files. By taking a snapshot of all file timestamps before execution and comparing them afterward, the backend accurately pushes overwritten or newly created files directly to the Workspace tab, completely avoiding name-collision bugs.
+
+---
+
+## 4. Installation & Quick Start
+
+SyncMind now includes automated batch scripts for seamless zero-configuration setup and node clustering on Windows.
+
+### First-Time Setup
+Simply double-click the **`install_syncmind.bat`** file.
+This script will automatically:
+- Download and install Python (if missing)
+- Setup an isolated Python Virtual Environment
+- Install all backend dependencies (FastAPI, WebSockets, Pandas, etc.)
+- Compile the Vite/React frontend into static assets
+- Clean and prepare the SQLite database
+
+### Starting the Cluster
+You can launch individual nodes or the entire swarm depending on your hardware:
+
+*   **`start_node1_master.bat`**: Boots the primary frontend server and the master backend node on `localhost:3000`. Run this on your main machine.
+*   **`start_node2_worker.bat`**: Boot this on a secondary machine on your network to act as a worker node (handles code execution and AI tasks remotely).
+*   **`start_node3_backup.bat`**: Boot this on a third machine to act as a failover/backup node.
+*   **`start_swarm.bat`**: Run this on a powerful workstation to simulate a multi-node cluster locally for testing and development.

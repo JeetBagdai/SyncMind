@@ -50,6 +50,7 @@ def update_chat(chat_id: str, body: dict = Body(...)):
         chat_id=chat_id, 
         title=body.get("title"), 
         category=body.get("category"), 
+        owner_id=body.get("owner_id"),
         is_pinned=body.get("is_pinned")
     )
     return {"status": "ok"}

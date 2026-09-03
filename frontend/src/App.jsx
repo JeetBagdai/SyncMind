@@ -173,7 +173,7 @@ export default function App() {
   const [deviceId] = useState(() => {
     let id = localStorage.getItem('syncmind_device_id')
     if (!id) {
-      id = uuidv4()
+      id = Date.now().toString(36) + '_' + Math.random().toString(36).slice(2)
       localStorage.setItem('syncmind_device_id', id)
     }
     return id
@@ -471,17 +471,11 @@ export default function App() {
           ]
           
           if (allChats.length === 0) {
-            allChats.push({
-              id: Date.now().toString(),
-              title: 'New Conversation',
-              group: 'Personal Workspace',
-              messages: [],
-              owner_id: deviceId
-            })
+            await newChat('PERSONAL')
+          } else {
+            setConversations(allChats)
+            setActiveConvId(allChats[0].id)
           }
-          
-          setConversations(allChats)
-          setActiveConvId(allChats[0].id)
       } catch (e) {
           console.error("Failed to load chats", e)
       }
@@ -1141,7 +1135,7 @@ export default function App() {
   )
 
   return (
-    <div className="h-screen w-full flex flex-col antialiased relative">
+    <div className="h-[100dvh] w-full flex flex-col antialiased relative">
       <ShaderBackground theme={theme} />
 
       {introPlaying && <IntroVideo onDone={() => setIntroPlaying(false)} />}
@@ -1340,7 +1334,7 @@ export default function App() {
               <div
                 id="chat-history"
                 ref={chatHistoryRef}
-                className={`flex-1 overflow-y-auto px-6 pt-28 transition-all duration-500 ${
+                className={`flex-1 overflow-y-auto px-3 sm:px-6 pt-28 transition-all duration-500 ${
                   isCentered ? 'pb-32' : 'pb-28'
                 }`}
               >
@@ -1350,7 +1344,7 @@ export default function App() {
                     <div
                       key={i}
                       ref={(el) => { msgRefs.current[i] = el }}
-                      className={`max-w-[80%] rounded-2xl px-5 py-3.5 markdown-body ${
+                      className={`max-w-[95%] sm:max-w-[85%] md:max-w-[80%] rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 markdown-body ${
                         msg.role === 'user' ? 'bubble-user self-end' : 'bubble-ai self-start'
                       }`}
                       dangerouslySetInnerHTML={{
@@ -1388,28 +1382,28 @@ export default function App() {
                     </h1>
                     
                     {/* SIH DEMO SCENARIOS */}
-                    <div className="mt-8 flex flex-wrap justify-center gap-3 pointer-events-auto" style={{ opacity: isIntroFinished ? 1 : 0, transition: 'opacity 1s ease' }}>
+                    <div className="mt-8 flex flex-wrap justify-center gap-2 sm:gap-3 pointer-events-auto" style={{ opacity: isIntroFinished ? 1 : 0, transition: 'opacity 1s ease' }}>
                       <button type="button" onClick={() => {
                         setUserInput("Generate a bar chart comparing regional downtime using sample_data.csv and save it as a PNG file.");
-                      }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-sm transition-colors cursor-pointer border border-white/5">
+                      }} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-xs sm:text-sm transition-colors cursor-pointer border border-white/5">
                         Demo A: Analytics
                       </button>
                       
                       <button type="button" onClick={() => {
                         setUserInput("Write a python script that calculates the pressure drop of water flowing at 10 m/s through a 50m pipe with a diameter of 0.2m.");
-                      }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-sm transition-colors cursor-pointer border border-white/5">
+                      }} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-xs sm:text-sm transition-colors cursor-pointer border border-white/5">
                         Demo B: Python Script
                       </button>
                       
                       <button type="button" onClick={() => {
                         setUserInput("Read sample_report.pdf, extract all the key anomalies, and write a 1-page summary report in Word format.");
-                      }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-sm transition-colors cursor-pointer border border-white/5">
+                      }} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-xs sm:text-sm transition-colors cursor-pointer border border-white/5">
                         Demo C: Multimodal
                       </button>
 
                       <button type="button" onClick={() => {
                         setUserInput("Can you fetch the latest news from bbc.com for me?");
-                      }} className="px-4 py-2 bg-white/10 hover:bg-red-500/30 rounded-full text-white/80 text-sm transition-colors cursor-pointer border border-red-500/20">
+                      }} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-red-500/30 rounded-full text-white/80 text-xs sm:text-sm transition-colors cursor-pointer border border-red-500/20">
                         Demo D: Test Air-Gap
                       </button>
                     </div>
@@ -1471,7 +1465,7 @@ export default function App() {
                     <form
                       id="chat-form"
                   onSubmit={handleSubmit}
-                  className={`glass-pill flex items-center gap-3 px-4 py-2.5 shadow-2xl chat-bubble-intro ${
+                  className={`glass-pill flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-2xl chat-bubble-intro ${
                     isIntroFinished ? 'revealed' : ''
                   }`}
                 >

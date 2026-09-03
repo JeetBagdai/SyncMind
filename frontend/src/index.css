@@ -265,7 +265,7 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -433,6 +433,15 @@ input:focus, textarea:focus {
   bottom: 1.5rem;
   transform: translate(-50%, 0);
   max-width: 52rem;
+}
+
+@media (max-width: 768px) {
+  .glass-pill-container {
+    padding: 0 0.5rem;
+  }
+  .glass-pill-container.docked {
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }
 
 /* Ultra-smooth bottom-to-top reveal animation */
@@ -899,7 +908,7 @@ input:focus, textarea:focus {
   flex-direction: column;
   width: 272px;
   max-width: 84vw;
-  height: 100vh;
+  height: 100dvh;
   padding: 0.75rem 0.6rem;
   background: var(--sb-bg);
   backdrop-filter: blur(24px);

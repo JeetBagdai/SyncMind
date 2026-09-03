@@ -97,7 +97,7 @@ class ContextStore:
                 for r in rows
             ]
 
-    def update_chat(self, chat_id, title=None, category=None, is_pinned=None):
+    def update_chat(self, chat_id, title=None, category=None, is_pinned=None, owner_id=None):
         updates = []
         params = []
         if title is not None:
@@ -106,6 +106,9 @@ class ContextStore:
         if category is not None:
             updates.append("category = ?")
             params.append(category)
+        if owner_id is not None:
+            updates.append("owner_id = ?")
+            params.append(owner_id)
         if is_pinned is not None:
             updates.append("is_pinned = ?")
             params.append(1 if is_pinned else 0)
