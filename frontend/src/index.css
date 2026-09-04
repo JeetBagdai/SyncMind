@@ -1981,12 +1981,13 @@ input:focus, textarea:focus {
 /* Network Proof Custom Layout */
 .ws-table-network .ws-cols,
 .ws-table-network .ws-row {
-  grid-template-columns: 14rem minmax(0, 1fr) 10rem;
+  grid-template-columns: 14rem minmax(0, 1fr) 16rem;
 }
 @media (max-width: 860px) {
   .ws-table-network .ws-cols,
-  .ws-table-network .ws-row { grid-template-columns: 10rem minmax(0, 1fr); }
-  .ws-table-network .ws-cell-type { display: none; }
+  .ws-table-network .ws-row {
+    grid-template-columns: 14rem minmax(0, 1fr) 16rem;
+  }
 }
 
 .glass-pill button {
