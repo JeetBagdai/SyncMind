@@ -857,9 +857,19 @@ export default function App() {
 
   function deleteChat(id, e) {
     if (e) e.stopPropagation()
+    
     setConversations((prev) => {
       const next = prev.filter((c) => c.id !== id)
-      if (id === activeConvId && next.length > 0) setActiveConvId(next[0].id)
+      
+      // Auto-fallback: if we just deleted the absolute last chat, create a new one automatically.
+      // We do this inside a setTimeout so it runs after the state update to avoid race conditions.
+      if (prev.length === 1 && prev[0].id === id) {
+        const deletedOwner = prev[0].owner_id;
+        setTimeout(() => newChat(deletedOwner === 'TEAM' ? 'TEAM' : 'PERSONAL'), 0);
+      } else if (id === activeConvId && next.length > 0) {
+        setActiveConvId(next[0].id)
+      }
+      
       return next
     })
     fetch(`/api/chats/${id}`, { method: 'DELETE' }).catch(()=>null)
