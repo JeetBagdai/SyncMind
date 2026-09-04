@@ -1489,12 +1489,12 @@ export default function App() {
                     <form
                       id="chat-form"
                   onSubmit={handleSubmit}
-                  className={`glass-pill flex items-end gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-2xl chat-bubble-intro ${
+                  className={`glass-pill flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-2xl chat-bubble-intro ${
                     isIntroFinished ? 'revealed' : ''
                   }`}
                 >
                   {/* + Button */}
-                  <div className="relative shrink-0 flex items-center pb-1" ref={attachMenuRef}>
+                  <div className="relative shrink-0 flex items-center" ref={attachMenuRef}>
                     <button
                       type="button"
                       onClick={() => setShowAttachMenu((prev) => !prev)}
@@ -1508,7 +1508,7 @@ export default function App() {
                   </div>
 
                   {/* Team/Personal Toggle */}
-                  <div className="shrink-0 flex items-center bg-white/5 rounded-full p-0.5 border border-white/5 shadow-inner pb-1">
+                  <div className="shrink-0 flex items-center bg-white/5 rounded-full p-0.5 border border-white/5 shadow-inner">
                     <button
                       type="button"
                       onClick={() => toggleChatPrivacy(activeConv?.id, 'TEAM')}
@@ -1563,7 +1563,7 @@ export default function App() {
                     style={{ resize: 'none', overflowY: 'auto' }}
                   />
                   {/* Model Selector */}
-                  <div className="relative shrink-0 flex items-center pr-2 pb-1" ref={modelMenuRef}>
+                  <div className="relative shrink-0 flex items-center pr-2" ref={modelMenuRef}>
                     <button
                       type="button"
                       onClick={() => setShowModelMenu(p => !p)}
@@ -1580,7 +1580,7 @@ export default function App() {
                     type="submit"
                     onMouseDown={handlePressStart}
                     onMouseUp={handlePressEnd}
-                    className="send-btn mb-1"
+                    className="send-btn"
                     aria-label="Send"
                     title="Send"
                   >
