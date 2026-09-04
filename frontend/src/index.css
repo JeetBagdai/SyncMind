@@ -1,7 +1,3 @@
-﻿@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -479,7 +475,7 @@ input:focus, textarea:focus {
   will-change: transform, opacity, filter;
 }
 
-/* TEMP: Hugging Face loading indicator â€” wave of dots */
+/* TEMP: Hugging Face loading indicator — wave of dots */
 /* Pulsing circle loading indicator */
 .pulsing-circle {
   width: 24px;
@@ -500,7 +496,7 @@ input:focus, textarea:focus {
    animates behind the headline. */
 .wr-word {
   display: inline-block;
-  /* Hidden until the intro video is over â€” GSAP reveals these. Without this
+  /* Hidden until the intro video is over — GSAP reveals these. Without this
      the headline paints on mount and then visibly re-animates. */
   opacity: 0;
   will-change: transform, opacity, filter;
@@ -597,7 +593,7 @@ input:focus, textarea:focus {
   flex-shrink: 0;
 }
 
-/* Wide rectangle â€” Agent Log / Workspace.
+/* Wide rectangle — Agent Log / Workspace.
    The width itself is tweened from JS (both states are content sized, so it
    can't transition in CSS); everything else eases here in step with it. */
 .nav-wide {
@@ -674,7 +670,7 @@ input:focus, textarea:focus {
   z-index: 1;
   display: flex;
   align-items: center;
-  /* thin vertically, generous horizontally â€” keeps the bar wide but light */
+  /* thin vertically, generous horizontally — keeps the bar wide but light */
   padding: 0.4rem 1.15rem;
   border-radius: 9999px;
   background: transparent;
@@ -725,7 +721,7 @@ input:focus, textarea:focus {
 }
 
 /* ============================================================
-   COMMAND PALETTE (âŒ˜K)
+   COMMAND PALETTE (⌘K)
    ============================================================ */
 .cmdk-overlay {
   position: fixed;
@@ -891,7 +887,7 @@ input:focus, textarea:focus {
 }
 
 /* ============================================================
-   SIDEBAR â€” chat history
+   SIDEBAR — chat history
    ============================================================ */
 .sb-backdrop {
   position: fixed;
@@ -1414,7 +1410,7 @@ input:focus, textarea:focus {
 }
 
 /* ============================================================
-   WORKSPACE â€” a file store, laid out like an Explorer details view
+   WORKSPACE — a file store, laid out like an Explorer details view
    ============================================================ */
 .ws-view {
   height: 100%;
@@ -1627,7 +1623,7 @@ input:focus, textarea:focus {
   color: inherit;
 }
 
-/* Row download â€” stays out of the way until the row is hovered */
+/* Row download — stays out of the way until the row is hovered */
 .ws-row-dl {
   display: flex;
   align-items: center;
@@ -1727,7 +1723,7 @@ input:focus, textarea:focus {
 }
 
 /* ============================================================
-   AGENT LOG â€” the agent's steps as an execution timeline
+   AGENT LOG — the agent's steps as an execution timeline
    ============================================================ */
 .al-view {
   height: 100%;
@@ -1998,4 +1994,3 @@ input:focus, textarea:focus {
 .glass-pill {
   pointer-events: auto !important;
 }
-
