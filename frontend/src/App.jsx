@@ -236,6 +236,16 @@ export default function App() {
   const [showModelMenu, setShowModelMenu] = useState(false)
   const modelMenuRef = useRef(null)
   const modelPopoverRef = useRef(null)
+  const textareaRef = useRef(null)
+  
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = (scrollHeight > 200 ? 200 : scrollHeight) + 'px';
+    }
+  }, [userInput]);
+
   const [attachedFile, setAttachedFile] = useState(null)
   const [isThinking, setIsThinking] = useState(false) // TEMP: HF demo
 
@@ -1479,7 +1489,7 @@ export default function App() {
                     <form
                       id="chat-form"
                   onSubmit={handleSubmit}
-                  className={`glass-pill flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-2xl chat-bubble-intro ${
+                  className={`glass-pill flex items-end gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-2xl chat-bubble-intro ${
                     isIntroFinished ? 'revealed' : ''
                   }`}
                 >
@@ -1535,14 +1545,22 @@ export default function App() {
                     </div>
                   )}
 
-                  <input
+                  <textarea
                     id="user-input"
-                    type="text"
+                    ref={textareaRef}
+                    rows={1}
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
                     className="pill-input"
                     placeholder="Ask a question, query the SOP, or request a Python script..."
                     autoComplete="off"
+                    style={{ resize: 'none', overflowY: 'auto' }}
                   />
                   {/* Model Selector */}
                   <div className="relative shrink-0 flex items-center pr-2" ref={modelMenuRef}>
