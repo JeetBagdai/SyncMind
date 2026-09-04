@@ -389,35 +389,39 @@ export default function App() {
   useEffect(() => {
     if (!activeConvId) return;
     let reconnectTimer;
+    let isCleanedUp = false;
+    let ws;
     
     function connect() {
-      const ws = new WebSocket(`ws://${window.location.host}/ws/${activeConvId}`)
+      if (isCleanedUp) return;
+      ws = new WebSocket(`ws://${window.location.host}/ws/${activeConvId}`)
       wsRef.current = ws
 
       ws.onclose = () => {
+        if (isCleanedUp) return;
         reconnectTimer = setTimeout(connect, 2000);
       }
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
 
-      if (data.type === 'history') {
-        setIsThinking(false)
-        setMessages(data.messages.map((m) => ({ role: m.role, content: m.content })))
-      } else if (data.type === 'message') {
-        if (data.message.role === 'assistant') setIsThinking(false)
-        setMessages((prev) => [...prev, { role: data.message.role, content: data.message.content }])
-      } else if (['thought', 'action', 'observation', 'status'].includes(data.type)) {
-        addThought(data.type, data.content)
-      }
+        if (data.type === 'history') {
+          setIsThinking(false)
+          setMessages(data.messages.map((m) => ({ role: m.role, content: m.content })))
+        } else if (data.type === 'message') {
+          if (data.message.role === 'assistant') setIsThinking(false)
+          setMessages((prev) => [...prev, { role: data.message.role, content: data.message.content }])
+        } else if (['thought', 'action', 'observation', 'status'].includes(data.type)) {
+          addThought(data.type, data.content)
+        }
       }
     }
     connect();
 
     return () => {
+      isCleanedUp = true;
       clearTimeout(reconnectTimer);
-      if (wsRef.current) wsRef.current.close();
-      wsRef.current = null;
+      if (ws) ws.close();
     }
   }, [addThought, activeConvId])
 
