@@ -90,7 +90,7 @@
   --nav-bg: rgba(22, 22, 24, 0.82);
   --nav-border: rgba(255, 255, 255, 0.07);
   --nav-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --sb-bg: rgba(12, 12, 13, 0.97);
+  --sb-bg: rgba(12, 12, 13, 0.78);
   --panel-bg: rgba(24, 24, 27, 0.9);
 
   --hair: rgba(255, 255, 255, 0.09);
@@ -180,7 +180,7 @@
   --nav-bg: rgba(255, 255, 255, 0.72);
   --nav-border: rgba(160, 120, 90, 0.18);
   --nav-shadow: 0 10px 30px rgba(120, 80, 50, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --sb-bg: rgba(252, 249, 245, 0.97);
+  --sb-bg: rgba(252, 249, 245, 0.82);
   --panel-bg: rgba(253, 250, 246, 0.96);
 
   --hair: rgba(120, 80, 50, 0.16);
@@ -903,6 +903,9 @@ input:focus, textarea:focus {
   animation: cmdkFade 0.2s ease both;
 }
 
+/* ============================================================
+   SIDEBAR — upgraded to match the glass design system
+   ============================================================ */
 .sidebar {
   position: fixed;
   top: 0;
@@ -915,20 +918,45 @@ input:focus, textarea:focus {
   height: 100dvh;
   padding: 0.75rem 0.6rem;
   background: var(--sb-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
   border-right: 1px solid var(--nav-border);
-  box-shadow: 24px 0 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 2px 0 0 0 rgba(255,255,255,0.03), 24px 0 60px rgba(0, 0, 0, 0.5);
   transform: translateX(-102%);
   transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
+
+/* Top highlight sheen — same language as .glass-card::before */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.06) 60%, transparent);
+  pointer-events: none;
+}
+
+/* Left-edge sheen */
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.1), transparent 60%);
+  pointer-events: none;
+}
+
 .sidebar.open { transform: translateX(0); }
 
 .sb-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.35rem 0.5rem 0.75rem;
+  padding: 0.35rem 0.5rem 0.85rem;
+  border-bottom: 1px solid var(--nav-border);
+  margin-bottom: 0.5rem;
 }
 .sb-brand {
   display: flex;
@@ -961,18 +989,26 @@ input:focus, textarea:focus {
   align-items: center;
   gap: 0.7rem;
   width: 100%;
-  padding: 0.6rem 0.7rem;
+  padding: 0.6rem 0.85rem;
   margin-bottom: 0.5rem;
-  border-radius: 10px;
-  background: var(--hair);
-  border: 1px solid var(--hair);
+  border-radius: 9999px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.2);
   color: var(--txt);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: box-shadow 0.2s ease, background 0.2s ease, transform 0.15s ease;
 }
-.sb-new:hover { background: var(--hover-strong); }
+.sb-new:hover {
+  background: var(--hover-strong);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.28);
+  transform: translateY(-1px);
+}
+.sb-new:active { transform: translateY(0); }
 .sb-new svg { width: 15px; height: 15px; flex-shrink: 0; }
 
 /* Nav items -------------------------------------------------- */
@@ -983,7 +1019,7 @@ input:focus, textarea:focus {
   gap: 0.7rem;
   width: 100%;
   padding: 0.5rem 0.7rem;
-  border-radius: 9px;
+  border-radius: 12px;
   background: transparent;
   border: none;
   color: var(--txt-dim);
@@ -991,11 +1027,18 @@ input:focus, textarea:focus {
   font-weight: 500;
   text-align: left;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
   transition: background 0.2s ease, color 0.2s ease;
 }
 .sb-item:hover { background: var(--hover); color: var(--txt); }
-.sb-item.active { background: var(--hair); color: var(--txt); }
+.sb-item.active {
+  background: var(--accent-bg, rgba(251, 191, 36, 0.1));
+  color: var(--txt);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 .sb-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.85; }
+.sb-item.active svg { opacity: 1; }
 
 /* Section label ---------------------------------------------- */
 .sb-section {
@@ -1003,8 +1046,10 @@ input:focus, textarea:focus {
   align-items: center;
   justify-content: space-between;
   padding: 1.1rem 0.7rem 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--txt-faint);
 }
 .sb-count {
@@ -1013,6 +1058,8 @@ input:focus, textarea:focus {
   border-radius: 9999px;
   background: var(--nav-border);
   color: var(--txt-dim);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 /* Chat list -------------------------------------------------- */
@@ -1031,17 +1078,22 @@ input:focus, textarea:focus {
   gap: 0.6rem;
   width: 100%;
   padding: 0.5rem 0.7rem;
-  border-radius: 9px;
+  border-radius: 10px;
   background: transparent;
   border: none;
   color: var(--txt-dim);
   font-size: 0.79rem;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
   transition: background 0.2s ease, color 0.2s ease;
 }
 .sb-chat:hover { background: var(--hover); color: var(--txt); }
-.sb-chat.active { background: var(--hair); color: var(--txt); }
+.sb-chat.active {
+  background: var(--accent-bg, rgba(251, 191, 36, 0.1));
+  color: var(--txt);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 
 .sb-chat-title {
   flex: 1;
@@ -1075,9 +1127,12 @@ input:focus, textarea:focus {
   flex-direction: column;
   gap: 1px;
   padding: 4px;
-  border-radius: 11px;
-  background: var(--hover);
+  border-radius: 14px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--nav-border);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .sb-empty {
