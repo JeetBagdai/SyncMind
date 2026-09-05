@@ -90,7 +90,7 @@
   --nav-bg: rgba(22, 22, 24, 0.82);
   --nav-border: rgba(255, 255, 255, 0.07);
   --nav-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --sb-bg: rgba(12, 12, 13, 0.78);
+  --sb-bg: rgba(12, 12, 13, 0.62);
   --panel-bg: rgba(24, 24, 27, 0.9);
 
   --hair: rgba(255, 255, 255, 0.09);
@@ -180,7 +180,7 @@
   --nav-bg: rgba(255, 255, 255, 0.72);
   --nav-border: rgba(160, 120, 90, 0.18);
   --nav-shadow: 0 10px 30px rgba(120, 80, 50, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --sb-bg: rgba(252, 249, 245, 0.82);
+  --sb-bg: rgba(252, 249, 245, 0.68);
   --panel-bg: rgba(253, 250, 246, 0.96);
 
   --hair: rgba(120, 80, 50, 0.16);
@@ -908,21 +908,22 @@ input:focus, textarea:focus {
    ============================================================ */
 .sidebar {
   position: fixed;
-  top: 0;
-  left: 0;
+  top: 0.5rem;
+  left: 0.5rem;
   z-index: 50;
   display: flex;
   flex-direction: column;
-  width: 272px;
-  max-width: 84vw;
-  height: 100dvh;
+  width: 268px;
+  max-width: calc(84vw - 0.5rem);
+  height: calc(100dvh - 1rem);
   padding: 0.75rem 0.6rem;
   background: var(--sb-bg);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
-  border-right: 1px solid var(--nav-border);
-  box-shadow: 2px 0 0 0 rgba(255,255,255,0.03), 24px 0 60px rgba(0, 0, 0, 0.5);
-  transform: translateX(-102%);
+  backdrop-filter: blur(32px) saturate(1.5);
+  -webkit-backdrop-filter: blur(32px) saturate(1.5);
+  border: 1px solid var(--nav-border);
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45), 0 2px 0 0 rgba(255,255,255,0.04) inset;
+  transform: translateX(calc(-100% - 1rem));
   transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
