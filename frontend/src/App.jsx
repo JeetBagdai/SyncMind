@@ -1420,7 +1420,7 @@ export default function App() {
                       </button>
                       
                       <button type="button" onClick={() => {
-                        setUserInput("Read sample_report.pdf, extract all the key anomalies, and write a 1-page summary report in Word format.");
+                        setUserInput("Read 'phase 3 expansion.pdf' to extract the core strategic goals, and cross-reference this with our knowledge base to generate a detailed Word document report for the executive board, and a PowerPoint presentation for the engineering team summarizing the key metrics.");
                       }} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 rounded-full text-white/80 text-xs sm:text-sm transition-colors cursor-pointer border border-white/5">
                         Demo C: Multimodal
                       </button>
