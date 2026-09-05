@@ -14,6 +14,22 @@ class Tools:
     async def execute_tool(self, tool_name: str, tool_input: str) -> str:
         if tool_name == "search_knowledge_base":
             return search_knowledge_base(tool_input)
+        elif tool_name == "read_document":
+            filename = tool_input.strip()
+            import os
+            path = os.path.join("data", "uploads", filename)
+            sidecar = path + ".txt"
+            if os.path.exists(sidecar):
+                with open(sidecar, "r", encoding="utf-8") as f:
+                    return f.read()
+            elif os.path.exists(path):
+                # Fallback to reading standard text files if no sidecar
+                try:
+                    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                        return f.read()
+                except Exception as e:
+                    return f"Error reading file {filename}: {e}"
+            return f"Error: File {filename} not found."
         elif tool_name == "sandbox_execute":
             code = tool_input.strip()
             match = re.search(r"```[^\n]*\n(.*?)```", code, re.DOTALL)
@@ -156,8 +172,9 @@ class ContextStore:
         system_prompt = """You are SyncMind, an advanced air-gapped Enterprise AI Workbench running on a distributed swarm.
 You have access to the following tools:
 1. search_knowledge_base: Searches internal company manuals, SOPs, reports, and extracted OCR text from uploaded documents. Input: a search query string.
-2. sandbox_execute: Executes Python code in a secure local sandbox. Use this for engineering calculations, or using python-docx to generate Word reports (.docx), openpyxl/pandas to generate Excel spreadsheets (.xlsx), and matplotlib/seaborn to generate charts and images (.png/.jpg). Input: Python code. 
-3. fetch_webpage: Fetches the HTML content of a given URL. Use this when you need to fetch data from the internet. Input: the full URL string.
+2. read_document: Reads the ENTIRE full text of an uploaded file. ALWAYS use this instead of `search_knowledge_base` when the user asks you to read, summarize, extract information, or answer questions about a specifically attached or named file (e.g., [Attached File: filename.pdf] or "read report.pdf"). Input: the exact filename.
+3. sandbox_execute: Executes Python code in a secure local sandbox. Use this for engineering calculations, or using python-docx to generate Word reports (.docx), openpyxl/pandas to generate Excel spreadsheets (.xlsx), and matplotlib/seaborn to generate charts and images (.png/.jpg). Input: Python code. 
+4. fetch_webpage: Fetches the HTML content of a given URL. Use this when you need to fetch data from the internet. Input: the full URL string.
 
 CRITICAL RULE: DO NOT generate, create, or save any files using sandbox_execute unless the user EXPLICITLY asks for a file, script, spreadsheet, or document. If they just ask a question, answer it directly in text.
 CRITICAL RULE 2: If the user asks you to fetch a URL or webpage, ALWAYS use the `fetch_webpage` tool to attempt the connection. NEVER preemptively refuse. Let the system's network monitor block the connection and report the error back to you.
