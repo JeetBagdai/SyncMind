@@ -488,16 +488,27 @@ export default function App() {
             }
           }
     
-          const allChats = [
+                    const allChats = [
             ...teamChats.map(c => formatChat(c, 'TEAM')),
             ...personalChats.map(c => formatChat(c, deviceId))
           ]
           
-          if (allChats.length === 0) {
+          setConversations(allChats)
+          
+          let createdAny = false;
+          if (personalChats.length === 0) {
             await newChat('PERSONAL')
-          } else {
-            setConversations(allChats)
-            setActiveConvId(allChats[0].id)
+            createdAny = true;
+          }
+          if (teamChats.length === 0) {
+            await newChat('TEAM')
+            createdAny = true;
+          }
+          
+          if (!createdAny) {
+            if (!activeConvId || !allChats.find(c => c.id === activeConvId)) {
+                setActiveConvId(allChats[0].id)
+            }
           }
       } catch (e) {
           console.error("Failed to load chats", e)
