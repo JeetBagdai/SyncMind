@@ -1400,7 +1400,7 @@ export default function App() {
                   {messages.map((msg, i) => (
                     <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end self-end' : 'items-start self-start'} max-w-[95%] sm:max-w-[85%] md:max-w-[80%]`}>
                         {msg.role === 'user' && msg.sender_name && (
-                          <span className="text-[11px] text-white/50 mb-1 px-2 uppercase tracking-wider font-semibold opacity-70">{msg.sender_name}</span>
+                          <span className="text-[13px] text-[var(--txt-dim)] mb-1.5 px-2 font-bold tracking-wide">{msg.sender_name}</span>
                         )}
                         <div
                           ref={(el) => { msgRefs.current[i] = el }}
