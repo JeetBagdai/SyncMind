@@ -1284,6 +1284,13 @@ input:focus, textarea:focus {
   padding: 0.25rem 0.5rem;
   font-size: 0.95rem;
   color: var(--glass-input) !important;
+  
+  /* Hide scrollbar */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.pill-input::-webkit-scrollbar {
+  display: none;
 }
 .pill-input::placeholder { color: var(--glass-placeholder); }
 
