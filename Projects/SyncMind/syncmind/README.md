@@ -1,55 +1,106 @@
-# SyncMind Enterprise Swarm
+# SyncMind: Product Overview & Technical Breakdown
 
-> **Self-Hosted, Air-Gapped Distributed AI Workbench for Enterprise**
+## 1. General Product Overview
 
-SyncMind is a fully local, agentic AI workbench designed for refineries, PSUs, defense units, and government offices. It runs completely offline and utilizes a **distributed GPU swarm**, ensuring zero data leakage for highly confidential and sensitive knowledge work.
+**SyncMind** is an advanced, enterprise-grade AI assistant platform designed to execute complex, multi-step tasks autonomously. Unlike standard conversational chatbots that simply return text, SyncMind operates as an **agentic system**. It is capable of writing, executing, and iterating on its own code in a secure sandbox to solve problems, analyze documents, process data, and generate tangible deliverables (like Word documents or Excel sheets).
 
----
-
-## The Problem
-
-Refineries, PSUs, defence-linked manufacturing units, and government offices generate a lot of routine but sensitive knowledge work:
-- Approval notes and board presentations
-- Engineering calculations and code for internal tools
-- Review of scanned drawings (P&IDs) and inspection reports
-
-None of this can go through cloud AI assistants like Claude or Codex because the underlying data is highly classified. While open-weight models are incredibly powerful, there is currently no deployable, agentic assistant built on them that industrial users can seamlessly utilize without compromising security or requiring a massive, centralized supercomputer.
+The platform is designed with a strong emphasis on **transparency and collaboration**. Users can peer into the AI's "brain" in real-time to watch its reasoning and code execution. Furthermore, the platform supports seamless local-network collaboration, allowing entire teams to watch an agent solve a problem live, while also providing secure, isolated private workspaces for individual tasks.
 
 ---
 
-## The Solution
+## 2. In-Depth Feature & Functionality Breakdown
 
-SyncMind provides a **self-hosted, air-gapped AI Swarm**. Instead of requiring a massive dedicated server, SyncMind pools the GPU resources of the team's existing laptops and workstations to perform heavy AI inference completely offline.
+### A. The Agentic Sandbox (Code Execution Engine)
+At the heart of SyncMind is its ability to take action. When faced with a complex task (e.g., "Analyze this PDF and generate a report"), the LLM does not just guess the answer—it writes a Python script to do the work.
 
-### Core Architecture
+*   **How it Works:** 
+    1. The LLM outputs a special `<run_python>` tag containing the code it wants to execute.
+    2. The backend (`sandbox/executor.py`) intercepts this tag and provisions a temporary, isolated workspace directory (e.g., `sandbox/workspace/run_a1b2c3/`).
+    3. Any files the user uploaded are securely copied into this directory.
+    4. The Python script is executed as a subprocess. 
+    5. The engine captures the standard output (`stdout`), errors (`stderr`), and monitors the directory for any new files created by the script.
+    6. This data is fed back to the LLM as an `<observation>`, allowing it to fix errors if the code crashed, or finalize its response if it succeeded.
 
-- **Smart Ollama Router (Swarm Load Balancing):** The backend dynamically tracks which laptops on the network are busy or idle, distributing heavy AI calculations across the team's GPUs in real-time.
-- **Raft Consensus Database (rqlite):** Uses a distributed, masterless database. All connected laptops share the exact same context and chat history, ensuring high availability even if a node disconnects.
-- **ReAct Agent Loop:** SyncMind plans multi-step work, autonomously deciding when to search internal documents or execute code to solve complex queries.
-- **Code Execution Sandbox:** A secure Python subprocess that allows the LLM to write code, execute it locally, and generate real physical deliverables (Excel, Word, Scripts) for the user to download.
-- **RAG Knowledge Base:** Connects to organizational manuals, SOPs, and past correspondence via a local Vector DB (ChromaDB) with zero external network calls.
+### B. Real-Time Telemetry: Agent Log
+SyncMind strips away the "black box" of AI. The **Agent Log** tab provides a retro-terminal interface that streams the AI's internal state machine live.
+
+*   **How it Works:** The backend parses the LLM's raw stream and categorizes the tokens into `thought` (reasoning), `action` (code execution), and `observation` (system feedback). These state changes are blasted over a WebSocket connection to the frontend, which renders them sequentially. This allows users to audit exactly *how* the AI arrived at a conclusion.
+
+### C. The Workspace (File Harvesting)
+When the AI generates a deliverable (like an `.xlsx` data summary or a `.docx` approval note), users need a clean way to access it without digging through chat logs.
+
+*   **How it Works:** After a sandbox execution finishes, the backend harvests any newly created files and broadcasts a `Generated Files:` payload over the WebSocket. The frontend listens for this payload and populates the **Workspace Tab**. This tab acts as a localized file explorer for the current chat session, providing direct HTTP `GET /download` links to retrieve the artifacts securely from the backend's sandbox directories.
+
+### D. Team vs. Personal Workspaces (Network Isolation)
+SyncMind natively supports LAN collaboration without requiring a cloud database. 
+
+*   **Team Workspaces:** When a user clicks `+ Team`, the backend registers the chat with `owner_id = 'TEAM'`. When any user on the local network loads the app, the frontend fetches all TEAM chats. Because the WebSockets are bound dynamically to the `activeConvId`, multiple users can open the same Team chat and watch the AI's cursor stream live simultaneously.
+*   **Personal Workspaces:** When a user clicks `+ Personal`, the frontend associates the chat with a unique, persistent `deviceId` (stored in the browser's `localStorage`). The backend strictly filters the `GET /api/chats` endpoint, ensuring that a user's browser only downloads Personal chats matching their exact `deviceId`. The WebSocket channels and resulting generated files are completely invisible to the rest of the network.
+
+### E. Multimodal Capabilities
+SyncMind is not limited to text. The frontend supports rich drag-and-drop file attachments.
+
+*   **How it Works:** When a user attaches a file (Image, PDF, CSV, etc.) and hits send, the frontend fires a `POST /api/upload/{chat_id}` request. The backend stages this file. When the LLM processes the prompt, it can use Python libraries (`pdfplumber`, `pandas`, `PIL`, or OCR tools) inside the Sandbox to physically open, read, and interpret the user's files to achieve tasks like Document Intelligence or Visual Engineering extraction.
+
+### F. The Frontend Architecture (UI/UX)
+The UI is built in React using Vite and TailwindCSS, prioritizing a cinematic, high-performance user experience.
+
+*   **Fluid Animations:** Powered by GSAP (GreenSock) and Anime.js, the UI features smooth staggered reveals, blurred entry transitions for new messages, and satisfying bouncy interactions for buttons.
+*   **Dynamic Loading:** While the AI is processing its sandbox operations, a custom CSS `@keyframes` pulsing circle animation anchors the chat, providing immediate visual feedback that the swarm is actively computing.
+*   **Responsive Sidebar:** A retractable sidebar manages the chat histories, organizing them cleanly into groups while allowing users to dynamically rename or pin important conversations.
 
 ---
 
-## Quick Start (Demo Deployment)
+## 3. The Execution Flow (Step-by-Step Example)
 
-To deploy the SyncMind Swarm for a demo, ensure all laptops are connected to the same local network.
+If a user clicks the **"Demo C: Multimodal Engineering"** button:
+1. The frontend pre-fills the chat input with the exact prompt and sends a WebSocket `query` payload to `ws://[host]/ws/[chat_id]`.
+2. The frontend activates the pulsing circle animation (`isThinking`).
+3. The backend receives the prompt, injects the system context (CRITICAL RULES), and queries the LLM.
+4. The LLM streams its initial `<thought>` process, which the backend routes to the Agent Log in the UI.
+5. The LLM writes a Python script to analyze `sample_diagram.png` and generate an equipment list. It streams this inside an `<action>` block.
+6. The backend suspends the LLM, runs the Python code in the Sandbox, and captures the resulting `.docx` file.
+7. The backend sends the file paths to the frontend, which instantly updates the Workspace tab.
+8. The LLM streams its final conversational response to the user, the pulsing circle disappears, and the user downloads their final document.
 
-### 1. Launch the Swarm (Leader Node)
-On the primary machine, simply double-click the `start_swarm.bat` script. This will automatically:
-1. Boot the **rqlite** distributed database.
-2. Boot the **Ollama** AI inference engine (bound to the local network).
-3. Boot the **FastAPI** Web Server.
+### G. Intelligent Swarm Routing
+The backend employs a semantic load balancer (router.py) to classify incoming prompts and route them to the most capable model in the local Swarm network.
+*   **Task Classification:** Prompts are categorized into GENERAL, CODING, DOCUMENT, CALCULATION, or GREETING based on keyword heuristics.
+*   **Speed-First Waterfall Load Balancing:** The swarm prioritizes raw speed and throughput over strict model-to-node pinning. 
+    1. The router identifies all nodes in the cluster capable of handling the task's tier (e.g., Heavy, Mid, Light).
+    2. It immediately routes the task to the most powerful (Tier 1) node *if it is idle*, even for basic tasks, to ensure the fastest possible response.
+    3. If the Tier 1 node is currently busy churning through a complex task, the router will "waterfall" the request down to the next available Tier 2 or Tier 3 node.
+    4. If all capable nodes are busy, it queues the task on the most powerful node with the fewest active tasks.
 
-### 2. Join the Swarm (Follower Nodes)
-On any other team laptops, run:
-1. `OLLAMA_HOST=0.0.0.0 ollama serve` (Donates their GPU to the swarm)
-2. Add their IP address to the `OLLAMA_NODES` list inside `router.py`.
-
-The UI will be accessible to anyone on the network at `http://<LEADER_IP>:3000`.
+### H. Robust File Tracking (mtime)
+The executor.py sandbox uses a foolproof filesystem modification timestamp (mtime) tracker to capture generated files. By taking a snapshot of all file timestamps before execution and comparing them afterward, the backend accurately pushes overwritten or newly created files directly to the Workspace tab, completely avoiding name-collision bugs.
 
 ---
 
-## License
+### I. Decentralized Desktop Swarm Architecture (P2P)
+SyncMind can be packaged as a fully autonomous, offline-first Desktop Application via Electron, eliminating the need for cloud infrastructure, terminal commands, or external Python environments.
+*   **Zero-Config 6-Digit Swarm Discovery:** Instead of manually typing raw IPv4 addresses, the system hashes the Host's local IP into a simple 6-digit Base36 code (e.g., `A8X2L9`). Team members on the same network simply type this code into the desktop UI to instantly wire up their WebSockets and synchronize the distributed `rqlite` database cluster.
+*   **Self-Contained AI Backend (PyInstaller):** The entire Python FastAPI backend, complete with LLM dependencies (Torch, Transformers) and local vector stores (ChromaDB), is compiled into a massive, hidden executable. The Electron Node shell silently spawns this backend as a background child process, ensuring the user only ever interacts with the sleek React frontend.
+*   **Automated Hardware Profiling:** On launch, the Electron shell scans the host machine's hardware (GPU VRAM, RAM) and automatically classifies the machine into Tier 1 (Heavy Compute), Tier 2 (Mid Compute), or Tier 3 (Basic Compute).
+*   **Compute Privacy Lock:** To prevent the Swarm from hijacking a workstation's GPU while the user is performing heavy tasks (like 3D rendering or gaming), users can enable the "Lock Compute" toggle in the UI. This immediately blocks incoming network LLM processing requests, but keeps the local `rqlite` database fully synced so they can still participate in Team Chats without lag.
 
-MIT
+## 4. Installation & Quick Start
+
+SyncMind now includes automated batch scripts for seamless zero-configuration setup and node clustering on Windows.
+
+### First-Time Setup
+Simply double-click the **`install_syncmind.bat`** file.
+This script will automatically:
+- Download and install Python (if missing)
+- Setup an isolated Python Virtual Environment
+- Install all backend dependencies (FastAPI, WebSockets, Pandas, etc.)
+- Compile the Vite/React frontend into static assets
+- Clean and prepare the SQLite database
+
+### Starting the Cluster
+You can launch individual nodes or the entire swarm depending on your hardware:
+
+*   **`start_node1_master.bat`**: Boots the primary frontend server and the master backend node on `localhost:3000`. Run this on your main machine.
+*   **`start_node2_worker.bat`**: Boot this on a secondary machine on your network to act as a worker node (handles code execution and AI tasks remotely).
+*   **`start_node3_backup.bat`**: Boot this on a third machine to act as a failover/backup node.
+*   **`start_swarm.bat`**: Run this on a powerful workstation to simulate a multi-node cluster locally for testing and development.

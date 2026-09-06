@@ -1,5 +1,5 @@
-import json
 import re
+import uuid
 from datetime import datetime
 from router import call_llm
 from rag.search import search_knowledge_base
@@ -7,104 +7,197 @@ from sandbox.executor import SandboxExecutor
 
 import pyrqlite.dbapi2 as dbapi2
 
-class ToolRegistry:
+class Tools:
     def __init__(self):
         self.sandbox = SandboxExecutor()
         
-    def execute_tool(self, tool_name: str, tool_input: str) -> str:
+    async def execute_tool(self, tool_name: str, tool_input: str) -> str:
         if tool_name == "search_knowledge_base":
             return search_knowledge_base(tool_input)
+        elif tool_name == "read_document":
+            filename = tool_input.strip()
+            import os
+            path = os.path.join("data", "uploads", filename)
+            sidecar = path + ".txt"
+            if os.path.exists(sidecar):
+                with open(sidecar, "r", encoding="utf-8") as f:
+                    return f.read()
+            elif os.path.exists(path):
+                # Fallback to reading standard text files if no sidecar
+                try:
+                    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                        return f.read()
+                except Exception as e:
+                    return f"Error reading file {filename}: {e}"
+            return f"Error: File {filename} not found."
         elif tool_name == "sandbox_execute":
             code = tool_input.strip()
-            if code.startswith("```python"):
-                code = code[9:]
-            elif code.startswith("```"):
-                code = code[3:]
-            if code.endswith("```"):
-                code = code[:-3]
+            match = re.search(r"```[^\n]*\n(.*?)```", code, re.DOTALL)
+            if match:
+                code = match.group(1).strip()
+            else:
+                if code.startswith("```"):
+                    code = code.split("\n", 1)[-1]
+                if code.endswith("```"):
+                    code = code.rsplit("```", 1)[0]
+                code = code.strip()
                 
-            res = self.sandbox.execute_python(code.strip())
+            res = self.sandbox.execute_python(code)
             out = f"Status: {res['status']}\nStdout: {res['stdout']}\nStderr: {res['stderr']}"
             if res['generated_files']:
                 out += f"\nGenerated Files: {', '.join(res['generated_files'])}"
             return out
+        elif tool_name == "fetch_webpage":
+            import httpx
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(tool_input.strip())
+                    return resp.text[:1000]
+            except Exception as e:
+                return f"Error: Network connection blocked. {str(e)}"
         else:
             return f"Error: Tool {tool_name} not found."
 
 class ContextStore:
     def __init__(self):
-        # Connect to local rqlite node (Raft distributed database)
         try:
             self.conn = dbapi2.connect(host='127.0.0.1', port=4001)
+            self.tools = Tools()
             self._init_db()
-            self.db_active = True
         except Exception as e:
-            print(f"WARNING: Could not connect to rqlite cluster on port 4001. Is rqlited running? Error: {e}")
-            self.db_active = False
-            
-        self.tools = ToolRegistry()
+            print(f"Warning: Failed to connect to rqlite: {e}")
 
     def _init_db(self):
         with self.conn.cursor() as cursor:
-            # rqlite executes SQLite syntax but replicates it via Raft
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS messages (
+                CREATE TABLE IF NOT EXISTS chats (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    category TEXT,
+                    is_pinned INTEGER DEFAULT 0,
+                    owner_id TEXT DEFAULT 'TEAM',
+                    updated_at TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messages_v2 (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    role TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    timestamp TEXT NOT NULL
+                    chat_id TEXT,
+                    role TEXT,
+                    content TEXT,
+                    timestamp TIMESTAMP,
+                    sender_name TEXT DEFAULT NULL,
+                    FOREIGN KEY(chat_id) REFERENCES chats(id) ON DELETE CASCADE
                 )
             """)
 
-    def add_message(self, role: str, content: str):
-        if not self.db_active: return
-        try:
-            with self.conn.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO messages (role, content, timestamp)
-                    VALUES (?, ?, ?)
-                """, (role, content, datetime.now().isoformat()))
-        except Exception as e:
-            print(f"DB Insert Error: {e}")
+    def create_chat(self, title="New Chat", category="Recents", owner_id="TEAM", chat_id=None):
+        if not chat_id:
+            chat_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                "INSERT OR REPLACE INTO chats (id, title, category, owner_id, updated_at) VALUES (?, ?, ?, ?, ?)",
+                (chat_id, title, category, owner_id, now)
+            )
+        return chat_id
 
-    def get_history(self, limit=15):
-        if not self.db_active: return []
-        try:
-            with self.conn.cursor() as cursor:
-                cursor.execute("""
-                    SELECT role, content FROM messages
-                    ORDER BY id DESC LIMIT ?
-                """, (limit,))
-                rows = cursor.fetchall()
-                # rows is a tuple of dicts or tuples depending on pyrqlite config
-                # Let's handle it assuming tuples:
-                rows_list = list(rows)
-                rows_list.reverse()
-                
-                result = []
-                for r in rows_list:
-                    # pyrqlite returns dictionaries if column names are available, 
-                    # but fallback to indexing if it returns tuples
-                    if isinstance(r, dict):
-                        result.append({"role": r['role'], "content": r['content']})
-                    else:
-                        result.append({"role": r[0], "content": r[1]})
-                return result
-        except Exception as e:
-            print(f"DB Select Error: {e}")
-            return []
+    def get_all_chats(self, owner_id="TEAM"):
+        with self.conn.cursor() as cursor:
+            if owner_id == "TEAM_CENTRAL":
+                cursor.execute(
+                    "SELECT id, title, category, is_pinned, updated_at FROM chats WHERE owner_id LIKE 'TEAM_%' OR owner_id = 'TEAM' ORDER BY is_pinned DESC, updated_at DESC"
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, title, category, is_pinned, updated_at FROM chats WHERE owner_id = ? ORDER BY is_pinned DESC, updated_at DESC", 
+                    (owner_id,)
+                )
+            rows = cursor.fetchall()
+            return [
+                {"id": r[0], "title": r[1], "category": r[2], "is_pinned": bool(r[3]), "updated_at": r[4]}
+                for r in rows
+            ]
 
-    async def run_agent_loop(self, user_prompt: str, image_b64: str = None, stream_callback=None):
-        """
-        Executes a ReAct loop.
-        stream_callback(type, content) is used to push thoughts/updates to the UI via WebSocket.
-        """
-        self.add_message("user", user_prompt)
+    def update_chat(self, chat_id, title=None, category=None, is_pinned=None, owner_id=None):
+        updates = []
+        params = []
+        if title is not None:
+            updates.append("title = ?")
+            params.append(title)
+        if category is not None:
+            updates.append("category = ?")
+            params.append(category)
+        if owner_id is not None:
+            updates.append("owner_id = ?")
+            params.append(owner_id)
+        if is_pinned is not None:
+            updates.append("is_pinned = ?")
+            params.append(1 if is_pinned else 0)
+            
+        if not updates:
+            return
+            
+        params.append(chat_id)
+        query = f"UPDATE chats SET {', '.join(updates)} WHERE id = ?"
+        with self.conn.cursor() as cursor:
+            cursor.execute(query, tuple(params))
+            
+        self.touch_chat(chat_id)
+
+    def delete_chat(self, chat_id):
+        with self.conn.cursor() as cursor:
+            cursor.execute("DELETE FROM chats WHERE id = ?", (chat_id,))
+
+    def touch_chat(self, chat_id):
+        now = datetime.utcnow().isoformat()
+        with self.conn.cursor() as cursor:
+            cursor.execute("UPDATE chats SET updated_at = ? WHERE id = ?", (now, chat_id))
+
+    def add_message(self, chat_id, role, content, sender_name=None):
+        now = datetime.utcnow().isoformat()
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO messages_v2 (chat_id, role, content, timestamp, sender_name) VALUES (?, ?, ?, ?, ?)",
+                (chat_id, role, content, now, sender_name)
+            )
+        self.touch_chat(chat_id)
+
+    def get_history(self, chat_id, limit=20):
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT role, content, sender_name FROM messages_v2 WHERE chat_id = ? ORDER BY timestamp ASC LIMIT ?",
+                (chat_id, limit)
+            )
+            rows = cursor.fetchall()
+            return [{"role": r[0], "content": r[1], "sender_name": r[2]} for r in rows]
+            
+    async def run_agent_loop(self, chat_id: str, user_prompt: str, image_b64: str = None, stream_callback = None, requested_model: str = "Auto", sender_name: str = None) -> str:
+        self.add_message(chat_id, "user", user_prompt, sender_name=sender_name)
         
         system_prompt = """You are SyncMind, an advanced air-gapped Enterprise AI Workbench running on a distributed swarm.
 You have access to the following tools:
-1. search_knowledge_base: Searches internal company manuals (SOPs, reports). Input: a search query string.
-2. sandbox_execute: Executes Python code in a secure local sandbox. You can use this for calculations, or using python-docx / python-pptx to generate deliverables. Input: Python code.
+1. search_knowledge_base: Searches internal company manuals, SOPs, reports, and extracted OCR text from uploaded documents. Input: a search query string.
+2. read_document: Reads the ENTIRE full text of an uploaded file. ALWAYS use this instead of `search_knowledge_base` when the user asks you to read, summarize, extract information, or answer questions about a specifically attached or named file (e.g., [Attached File: filename.pdf] or "read report.pdf"). Input: the exact filename.
+3. sandbox_execute: Executes Python code in a secure local sandbox. Use this for engineering calculations, or using python-docx to generate Word reports (.docx), openpyxl/pandas to generate Excel spreadsheets (.xlsx), and matplotlib/seaborn to generate charts and images (.png/.jpg). Input: Python code. 
+4. fetch_webpage: Fetches the HTML content of a given URL. Use this when you need to fetch data from the internet. Input: the full URL string.
+
+CRITICAL RULE: DO NOT generate, create, or save any files using sandbox_execute unless the user EXPLICITLY asks for a file, script, spreadsheet, or document. If they just ask a question, answer it directly in text.
+CRITICAL RULE 2: If the user asks you to fetch a URL or webpage, ALWAYS use the `fetch_webpage` tool to attempt the connection. NEVER preemptively refuse. Let the system's network monitor block the connection and report the error back to you.
+
+CRITICAL RULE 3: If the user asks to "Read 'phase 3 expansion.pdf' to extract the core strategic goals, and cross-reference this with our knowledge base...", you MUST FIRST use the `read_document` tool to read the expansion pdf, THEN use `search_knowledge_base` to find related metrics, and FINALLY use the `sandbox_execute` tool to write a Python script that generates BOTH a `.docx` file (using `python-docx`) and a `.pptx` file (using `pptx`).
+Your python script must create both documents and save them to the current working directory with unique filenames. Include the extracted information as string variables in your python code. Do NOT try to read the PDF inside the python sandbox since the PDF isn't in the sandbox environment.
+
+CRITICAL RULE 4: When using sandbox_execute to inspect data (e.g. checking column names with data.columns), you MUST use the print() function (e.g. print(data.columns)). The sandbox ONLY captures standard output. If you evaluate an expression without printing it, the output will be empty and you will not see the results.
+
+
+CRITICAL RULE 5: When saving files in python, ALWAYS save them to the current working directory (e.g. `plt.savefig("chart_8273.png")`). DO NOT use absolute paths.
+ALWAYS use a unique filename (e.g. append a random number or timestamp) to ensure it doesn't collide with previous files.
+When you need to show or return the generated file to the user, YOU MUST use this exact markdown format to construct the download link using the backend's /download endpoint:
+For images (PNG/JPG): `![](/download?path=<ABSOLUTE_PATH>)`
+For documents (DOCX/XLSX/CSV): `[Download <filename>](/download?path=<ABSOLUTE_PATH>)`
+Replace `<ABSOLUTE_PATH>` with the exact absolute path provided in the 'Generated Files' observation (which will automatically appear after you save the file). DO NOT just use the filename in the link.
+
 
 Format your responses exactly like this:
 Thought: I need to do X...
@@ -117,7 +210,7 @@ Final Answer: The final response to the user.
 """
 
         messages = [{"role": "system", "content": system_prompt}]
-        messages.extend(self.get_history(limit=5)) 
+        messages.extend(self.get_history(chat_id, limit=5)) 
         
         if image_b64:
             messages[-1]["images"] = [image_b64]
@@ -125,43 +218,48 @@ Final Answer: The final response to the user.
         else:
             use_vision = False
 
-        max_iterations = 5
+        max_iterations = 6
         
         for i in range(max_iterations):
-            # The router now handles the status stream_callback to show load balancing
-            response = await call_llm(messages, use_vision=use_vision, stream_callback=stream_callback)
+            response = await call_llm(
+                messages, 
+                use_vision=use_vision, 
+                stream_callback=stream_callback,
+                stop=["\nObservation:", "Observation:"],
+                requested_model=requested_model
+            )
             
             if stream_callback:
                 await stream_callback("thought", response)
-            
+                
             messages.append({"role": "assistant", "content": response})
             
-            action_match = re.search(r"Action:\s*(.*?)\n", response)
-            action_input_match = re.search(r"Action Input:\s*(.*?)(?:\n|$)", response, re.DOTALL)
+            action_match = re.search(r"Action:\s*(.*?)\nAction Input:\s*(.*)", response, re.DOTALL)
             final_answer_match = re.search(r"Final Answer:\s*(.*)", response, re.DOTALL)
             
-            if final_answer_match:
-                final_text = final_answer_match.group(1).strip()
-                self.add_message("assistant", final_text)
-                return final_text
-                
-            elif action_match and action_input_match:
+            if action_match:
                 action = action_match.group(1).strip()
-                action_input = action_input_match.group(1).strip()
+                action_input = action_match.group(2).strip()
                 
                 if stream_callback:
                     await stream_callback("action", f"Running Tool: {action}\nInput:\n{action_input}")
                 
-                observation = self.tools.execute_tool(action, action_input)
+                observation = await self.tools.execute_tool(action, action_input)
                 
                 if stream_callback:
                     await stream_callback("observation", f"Result:\n{observation}")
                     
                 messages.append({"role": "user", "content": f"Observation: {observation}"})
+                
+            elif final_answer_match:
+                final_text = final_answer_match.group(1).strip()
+                self.add_message(chat_id, "assistant", final_text)
+                return final_text
             else:
-                self.add_message("assistant", response)
+                # Malformed output, treat it as final answer
+                self.add_message(chat_id, "assistant", response)
                 return response
                 
         fallback = "Agent reached maximum iteration limit."
-        self.add_message("assistant", fallback)
+        self.add_message(chat_id, "assistant", fallback)
         return fallback

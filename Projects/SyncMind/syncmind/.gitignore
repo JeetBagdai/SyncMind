@@ -1,4 +1,4 @@
-__pycache__/
+﻿__pycache__/
 *.pyc
 *.db
 chroma_db/
@@ -8,3 +8,6 @@ rqlite_data/
 OllamaSetup.exe
 .env
 *.log
+data/chroma_db/
+data/uploads/
+sandbox/workspace/
