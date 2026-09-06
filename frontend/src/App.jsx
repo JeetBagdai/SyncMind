@@ -938,7 +938,7 @@ export default function App() {
     // the FastAPI backend running. chatEnabled() is always true now that
     // the only provider is local, so this path always wins over the
     // WebSocket below - gate it differently if the backend should answer.
-    if (chatEnabled()) {
+    if (false && chatEnabled()) {
       const nextHistory = [...messages, { role: 'user', content: fullMessage }]
       // Write messages + auto-title the chat from its first user message
       setConversations((prev) => {
