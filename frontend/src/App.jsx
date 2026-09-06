@@ -240,9 +240,15 @@ export default function App() {
   
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      // Force it to shrink to 0px so scrollHeight is strictly based on content
+      textareaRef.current.style.height = '0px';
       const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = (scrollHeight > 200 ? 200 : scrollHeight) + 'px';
+      // If it's completely empty, we can just let it revert to its natural CSS rows={1} size
+      if (!userInput) {
+        textareaRef.current.style.height = 'auto';
+      } else {
+        textareaRef.current.style.height = (scrollHeight > 200 ? 200 : scrollHeight) + 'px';
+      }
     }
   }, [userInput]);
 
