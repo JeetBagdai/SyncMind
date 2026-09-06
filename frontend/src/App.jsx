@@ -1385,7 +1385,7 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-hidden relative z-10">
+      <main className={`flex-1 overflow-hidden relative z-10 transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${sidebarOpen ? 'md:ml-[280px]' : ''}`}>
         {/* Chat View */}
         {activeTab === 'chat-view' && (() => {
           const isCentered = messages.length === 0 && userInput.trim() === ''
