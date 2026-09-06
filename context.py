@@ -86,6 +86,7 @@ class ContextStore:
                     role TEXT,
                     content TEXT,
                     timestamp TIMESTAMP,
+                    sender_name TEXT DEFAULT NULL,
                     FOREIGN KEY(chat_id) REFERENCES chats(id) ON DELETE CASCADE
                 )
             """)
@@ -148,26 +149,26 @@ class ContextStore:
         with self.conn.cursor() as cursor:
             cursor.execute("UPDATE chats SET updated_at = ? WHERE id = ?", (now, chat_id))
 
-    def add_message(self, chat_id, role, content):
+    def add_message(self, chat_id, role, content, sender_name=None):
         now = datetime.utcnow().isoformat()
         with self.conn.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO messages_v2 (chat_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
-                (chat_id, role, content, now)
+                "INSERT INTO messages_v2 (chat_id, role, content, timestamp, sender_name) VALUES (?, ?, ?, ?, ?)",
+                (chat_id, role, content, now, sender_name)
             )
         self.touch_chat(chat_id)
 
     def get_history(self, chat_id, limit=20):
         with self.conn.cursor() as cursor:
             cursor.execute(
-                "SELECT role, content FROM messages_v2 WHERE chat_id = ? ORDER BY timestamp ASC LIMIT ?",
+                "SELECT role, content, sender_name FROM messages_v2 WHERE chat_id = ? ORDER BY timestamp ASC LIMIT ?",
                 (chat_id, limit)
             )
             rows = cursor.fetchall()
-            return [{"role": r[0], "content": r[1]} for r in rows]
+            return [{"role": r[0], "content": r[1], "sender_name": r[2]} for r in rows]
             
-    async def run_agent_loop(self, chat_id: str, user_prompt: str, image_b64: str = None, stream_callback = None, requested_model: str = "Auto") -> str:
-        self.add_message(chat_id, "user", user_prompt)
+    async def run_agent_loop(self, chat_id: str, user_prompt: str, image_b64: str = None, stream_callback = None, requested_model: str = "Auto", sender_name: str = None) -> str:
+        self.add_message(chat_id, "user", user_prompt, sender_name=sender_name)
         
         system_prompt = """You are SyncMind, an advanced air-gapped Enterprise AI Workbench running on a distributed swarm.
 You have access to the following tools:
@@ -179,9 +180,8 @@ You have access to the following tools:
 CRITICAL RULE: DO NOT generate, create, or save any files using sandbox_execute unless the user EXPLICITLY asks for a file, script, spreadsheet, or document. If they just ask a question, answer it directly in text.
 CRITICAL RULE 2: If the user asks you to fetch a URL or webpage, ALWAYS use the `fetch_webpage` tool to attempt the connection. NEVER preemptively refuse. Let the system's network monitor block the connection and report the error back to you.
 
-CRITICAL RULE 3: If the user asks to "Read sample_report.pdf, extract all the key anomalies, and write a 1-page summary report in Word format.", you MUST use the `sandbox_execute` tool to write a Python script. Do NOT use `search_knowledge_base`. 
-The anomalies in the PDF are formatted as a numbered list under "Key Anomalies Detected:".
-Your python script must read 'sample_report.pdf' (using `pdfplumber`), extract those numbered anomalies, and save them to a uniquely named `.docx` file using `python-docx`.
+CRITICAL RULE 3: If the user asks to "Read 'phase 3 expansion.pdf' to extract the core strategic goals, and cross-reference this with our knowledge base...", you MUST FIRST use the `read_document` tool to read the expansion pdf, THEN use `search_knowledge_base` to find related metrics, and FINALLY use the `sandbox_execute` tool to write a Python script that generates BOTH a `.docx` file (using `python-docx`) and a `.pptx` file (using `pptx`).
+Your python script must create both documents and save them to the current working directory with unique filenames. Include the extracted information as string variables in your python code. Do NOT try to read the PDF inside the python sandbox since the PDF isn't in the sandbox environment.
 
 CRITICAL RULE 4: When using sandbox_execute to inspect data (e.g. checking column names with data.columns), you MUST use the print() function (e.g. print(data.columns)). The sandbox ONLY captures standard output. If you evaluate an expression without printing it, the output will be empty and you will not see the results.
 

@@ -65,9 +65,12 @@ If a user clicks the **"Demo C: Multimodal Engineering"** button:
 
 ### G. Intelligent Swarm Routing
 The backend employs a semantic load balancer (router.py) to classify incoming prompts and route them to the most capable model in the local Swarm network.
-*   **GENERAL Tasks:** Routed to qwen2.5:7b.
-*   **CODING Tasks:** Routed to qwen2.5-coder:7b (a specialized coding variant) for complex python execution.
-*   **QUICK Tasks:** Routed to qwen2.5:1.5b for fast, lightweight responses.
+*   **Task Classification:** Prompts are categorized into GENERAL, CODING, DOCUMENT, CALCULATION, or GREETING based on keyword heuristics.
+*   **Speed-First Waterfall Load Balancing:** The swarm prioritizes raw speed and throughput over strict model-to-node pinning. 
+    1. The router identifies all nodes in the cluster capable of handling the task's tier (e.g., Heavy, Mid, Light).
+    2. It immediately routes the task to the most powerful (Tier 1) node *if it is idle*, even for basic tasks, to ensure the fastest possible response.
+    3. If the Tier 1 node is currently busy churning through a complex task, the router will "waterfall" the request down to the next available Tier 2 or Tier 3 node.
+    4. If all capable nodes are busy, it queues the task on the most powerful node with the fewest active tasks.
 
 ### H. Robust File Tracking (mtime)
 The executor.py sandbox uses a foolproof filesystem modification timestamp (mtime) tracker to capture generated files. By taking a snapshot of all file timestamps before execution and comparing them afterward, the backend accurately pushes overwritten or newly created files directly to the Workspace tab, completely avoiding name-collision bugs.

@@ -1175,7 +1175,7 @@ export default function App() {
       
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sb-head">
-          <button className="sb-brand" onClick={() => { setActiveTab('chat-view'); setSidebarOpen(false) }}>
+          <button className="sb-brand" onClick={() => { setActiveTab('settings-view'); setSidebarOpen(false) }}>
             <img className="brand-logo" src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'} alt="SyncMind" />
             <span className="nav-wordmark">SyncMind</span>
           </button>
@@ -1265,7 +1265,7 @@ export default function App() {
         </button>
 
         {/* Brand logo */}
-        <button className="nav-logo" onClick={() => setActiveTab('chat-view')} aria-label="SyncMind home">
+        <button className="nav-logo" onClick={() => setActiveTab('settings-view')} aria-label="SyncMind settings">
           <img src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'} alt="SyncMind" />
         </button>
 
