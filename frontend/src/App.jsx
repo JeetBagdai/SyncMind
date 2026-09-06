@@ -1871,7 +1871,7 @@ export default function App() {
                             localStorage.removeItem('syncmind_username')
                           }
                         }}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-white/30 focus:bg-white/10 transition-all text-white placeholder-white/30 shadow-inner"
+                        className="w-full bg-[var(--hover)] border border-[var(--ws-card-border)] rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[var(--txt-dim)] focus:bg-[var(--ws-card-bg)] transition-all text-[var(--txt)] placeholder-[var(--txt-faint)] shadow-inner"
                       />
                       <p className="text-xs opacity-60 mt-2">This name will appear above your messages in Team chats.</p>
                     </div>
@@ -1883,7 +1883,7 @@ export default function App() {
                       <div className="relative">
                         <button 
                           onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm outline-none hover:border-white/30 hover:bg-white/10 transition-all text-white shadow-inner flex justify-between items-center text-left"
+                          className="w-full bg-[var(--hover)] border border-[var(--ws-card-border)] rounded-lg px-4 py-2.5 text-sm outline-none hover:border-[var(--txt-dim)] hover:bg-[var(--ws-card-bg)] transition-all text-[var(--txt)] shadow-inner flex justify-between items-center text-left"
                         >
                           <span className={selectedTeam ? 'opacity-100' : 'opacity-50'}>
                             {selectedTeam === 'TEAM_OPS_ENG' ? 'Operations & Core Engineering Team' : 
@@ -1892,13 +1892,13 @@ export default function App() {
                              selectedTeam === 'TEAM_COMM_GOV' ? 'Commercial & Governance Team' :
                              'Operations & Core Engineering Team'}
                           </span>
-                          <svg className={`w-4 h-4 text-white opacity-50 transition-transform ${isTeamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className={`w-4 h-4 text-[var(--txt-faint)] transition-transform ${isTeamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                         
                         {isTeamDropdownOpen && (
-                          <div className="absolute top-full left-0 w-full mt-2 bg-[#1a1a1a] border border-[var(--nav-border)] rounded-lg shadow-2xl z-50 overflow-hidden py-1">
+                          <div className="absolute top-full left-0 w-full mt-2 bg-[var(--ws-card-bg)] border border-[var(--ws-card-border)] rounded-lg shadow-2xl z-50 overflow-hidden py-1">
                             {[
                               { id: 'TEAM_OPS_ENG', label: 'Operations & Core Engineering Team' },
                               { id: 'TEAM_SUPPORT_ADMIN', label: 'Support & Administrative Team' },
@@ -1912,7 +1912,7 @@ export default function App() {
                                   localStorage.setItem('syncmind_team', opt.id);
                                   setIsTeamDropdownOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition-colors ${selectedTeam === opt.id ? 'bg-white/5 text-white font-medium' : 'text-white/80'}`}
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--hover-strong)] transition-colors ${selectedTeam === opt.id ? 'bg-[var(--hover)] text-[var(--txt)] font-medium' : 'text-[var(--txt-dim)]'}`}
                               >
                                 {opt.label}
                               </button>
@@ -1927,11 +1927,11 @@ export default function App() {
                 </div>
 
                 {/* Divider */}
-                <div className="w-full h-px bg-white/10"></div>
+                <div className="w-full h-px bg-[var(--ws-card-border)]"></div>
 
                 {/* System Control Section */}
                 <div className="w-full relative">
-                  <h3 className="text-lg font-semibold mb-1 opacity-90 text-red-400">System Shutdown Scheduler</h3>
+                  <h3 className="text-lg font-semibold mb-1 opacity-90 text-red-500">System Shutdown Scheduler</h3>
                   <p className="text-sm opacity-70 mb-4">Schedule a complete shutdown of all SyncMind backend processes.</p>
                   
                   <div className="flex flex-col gap-4">
@@ -1942,7 +1942,7 @@ export default function App() {
                           type="text"
                           id="shutdown-time"
                           placeholder="HH:MM (24h)"
-                          className="w-36 bg-white/5 border border-red-500/30 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-red-400 focus:bg-white/10 transition-all text-red-100 placeholder-red-200/60 shadow-inner text-center font-mono tracking-wider"
+                          className="w-36 bg-[var(--hover)] border border-red-500/30 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:bg-[var(--ws-card-bg)] transition-all text-[var(--txt)] placeholder-[var(--txt-faint)] shadow-inner text-center font-mono tracking-wider"
                         />
                         <button 
                           onClick={() => {
