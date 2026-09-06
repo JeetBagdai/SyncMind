@@ -1828,9 +1828,9 @@ export default function App() {
                   <p className="ws-subtitle">Configure your preferences and system settings</p>
                 </div>
               </header>
-              <div className="ws-body p-6 flex flex-col gap-6 text-[var(--txt)] max-w-2xl mx-auto w-full mt-4" style={{ alignItems: 'center' }}>
+              <div className="ws-body p-6 flex flex-col gap-6 text-[var(--txt)] max-w-5xl mx-auto w-full mt-4" style={{ alignItems: 'center' }}>
                 {/* Profile Section */}
-                <div className="bg-[var(--panel-bg)] border border-[var(--nav-border)] rounded-xl p-6 w-full shadow-lg">
+                <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-8 w-full shadow-2xl">
                   <h3 className="text-lg font-semibold mb-5 opacity-90">Profile & Identity</h3>
                   <div className="flex flex-col gap-6">
                     <div>
@@ -1902,7 +1902,7 @@ export default function App() {
                 </div>
 
                 {/* System Control Section */}
-                <div className="bg-[var(--panel-bg)] border border-red-900/30 rounded-xl p-6 w-full relative overflow-hidden shadow-lg">
+                <div className="bg-red-500/[0.02] backdrop-blur-xl border border-red-500/20 rounded-2xl p-8 w-full relative overflow-hidden shadow-2xl">
                   <div className="absolute top-0 left-0 w-1 h-full bg-red-500/50"></div>
                   <h3 className="text-lg font-semibold mb-1 opacity-90 text-red-400">System Shutdown Scheduler</h3>
                   <p className="text-sm opacity-70 mb-4">Schedule a complete shutdown of all SyncMind backend processes.</p>
@@ -1912,9 +1912,10 @@ export default function App() {
                       <label className="block text-sm font-medium opacity-80 mb-1">Schedule Shutdown Time</label>
                       <div className="flex items-center gap-3">
                         <input 
-                          type="time"
+                          type="text"
                           id="shutdown-time"
-                          className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-red-500/50 focus:bg-red-500/20 transition-all text-red-100 shadow-inner [color-scheme:dark]"
+                          placeholder="HH:MM (24h)"
+                          className="w-32 bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-red-500/50 focus:bg-red-500/10 transition-all text-red-100 placeholder-red-500/30 shadow-inner text-center font-mono tracking-wider"
                         />
                         <button 
                           onClick={() => {
