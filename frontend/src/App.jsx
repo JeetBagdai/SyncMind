@@ -1945,9 +1945,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className="w-full h-px bg-[var(--ws-card-border)]"></div>
-
                   {/* Swarm Compute Section */}
                   <div className="w-full">
                     <h3 className="text-lg font-semibold mb-5 opacity-90">Swarm Compute & Privacy</h3>
@@ -1970,8 +1967,6 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="w-full h-px bg-[var(--ws-card-border)] opacity-50 my-2"></div>
 
                   {/* System Control Section */}
                 <div className="w-full relative">
