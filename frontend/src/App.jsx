@@ -1917,7 +1917,7 @@ export default function App() {
                           type="text"
                           id="shutdown-time"
                           placeholder="HH:MM (24h)"
-                          className="w-32 bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-red-500/50 focus:bg-red-500/10 transition-all text-red-100 placeholder-red-500/30 shadow-inner text-center font-mono tracking-wider"
+                          className="w-36 bg-white/5 border border-red-500/30 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-red-400 focus:bg-white/10 transition-all text-red-100 placeholder-red-200/60 shadow-inner text-center font-mono tracking-wider"
                         />
                         <button 
                           onClick={() => {
