@@ -104,10 +104,15 @@ class ContextStore:
 
     def get_all_chats(self, owner_id="TEAM"):
         with self.conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT id, title, category, is_pinned, updated_at FROM chats WHERE owner_id = ? ORDER BY is_pinned DESC, updated_at DESC", 
-                (owner_id,)
-            )
+            if owner_id == "TEAM_CENTRAL":
+                cursor.execute(
+                    "SELECT id, title, category, is_pinned, updated_at FROM chats WHERE owner_id LIKE 'TEAM_%' OR owner_id = 'TEAM' ORDER BY is_pinned DESC, updated_at DESC"
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, title, category, is_pinned, updated_at FROM chats WHERE owner_id = ? ORDER BY is_pinned DESC, updated_at DESC", 
+                    (owner_id,)
+                )
             rows = cursor.fetchall()
             return [
                 {"id": r[0], "title": r[1], "category": r[2], "is_pinned": bool(r[3]), "updated_at": r[4]}

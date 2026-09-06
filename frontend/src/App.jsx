@@ -468,15 +468,16 @@ export default function App() {
 
       // Fetch from API
       try {
-          const [teamRes, personalRes] = await Promise.all([
-            fetch('/api/chats?owner_id=TEAM'),
+          const currentTeam = localStorage.getItem('syncmind_team') || 'TEAM_OPS_ENG';
+            const [teamRes, personalRes] = await Promise.all([
+              fetch(`/api/chats?owner_id=${currentTeam}`),
             fetch(`/api/chats?owner_id=${deviceId}`)
           ])
           const teamChats = await teamRes.json()
           const personalChats = await personalRes.json()
     
           const formatChat = (c, owner) => {
-            let defaultGroup = owner === 'TEAM' ? 'Team Workspace' : 'Personal Workspace'
+            let defaultGroup = owner.startsWith('TEAM') ? 'Team Workspace' : 'Personal Workspace'
             return {
               id: c.id,
               title: c.title,
@@ -503,7 +504,7 @@ export default function App() {
       }
     }
     loadChats()
-  }, [deviceId])
+    }, [deviceId, selectedTeam])
 
 
 
@@ -822,7 +823,8 @@ export default function App() {
 
   // ---- Chat management ----
   async function newChat(ownerType) {
-    const owner = ownerType === 'TEAM' ? 'TEAM' : deviceId
+    const currentTeam = localStorage.getItem('syncmind_team') || 'TEAM_OPS_ENG'
+      const owner = ownerType === 'TEAM' ? currentTeam : deviceId
     try {
         const res = await fetch('/api/chats', {
           method: 'POST',
@@ -874,8 +876,9 @@ export default function App() {
   }
 
   function toggleChatPrivacy(id, ownerType) {
-    const owner = ownerType === 'TEAM' ? 'TEAM' : deviceId
-    const newGroup = owner === 'TEAM' ? 'Team Workspace' : 'Personal Workspace'
+    const currentTeam = localStorage.getItem('syncmind_team') || 'TEAM_OPS_ENG'
+      const owner = ownerType === 'TEAM' ? currentTeam : deviceId
+    const newGroup = ownerType === 'TEAM' ? 'Team Workspace' : 'Personal Workspace'
     setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, owner_id: owner, group: newGroup } : c)))
     fetch(`/api/chats/${id}`, {
       method: 'PUT',
@@ -1890,6 +1893,7 @@ export default function App() {
                              selectedTeam === 'TEAM_SUPPORT_ADMIN' ? 'Support & Administrative Team' :
                              selectedTeam === 'TEAM_SAFETY_QA' ? 'Safety, Quality & Technical Strategy Team' :
                              selectedTeam === 'TEAM_COMM_GOV' ? 'Commercial & Governance Team' :
+                             selectedTeam === 'TEAM_CENTRAL' ? 'Central (All Teams Access)' :
                              'Operations & Core Engineering Team'}
                           </span>
                           <svg className={`w-4 h-4 text-[var(--txt-faint)] transition-transform ${isTeamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1903,7 +1907,8 @@ export default function App() {
                               { id: 'TEAM_OPS_ENG', label: 'Operations & Core Engineering Team' },
                               { id: 'TEAM_SUPPORT_ADMIN', label: 'Support & Administrative Team' },
                               { id: 'TEAM_SAFETY_QA', label: 'Safety, Quality & Technical Strategy Team' },
-                              { id: 'TEAM_COMM_GOV', label: 'Commercial & Governance Team' }
+                              { id: 'TEAM_COMM_GOV', label: 'Commercial & Governance Team' },
+                                { id: 'TEAM_CENTRAL', label: 'Central (All Teams Access)' }
                             ].map((opt) => (
                               <button
                                 key={opt.id}
