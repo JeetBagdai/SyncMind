@@ -1267,8 +1267,21 @@ export default function App() {
         </button>
 
         {/* Brand logo */}
-        <button className="nav-logo" onClick={() => setActiveTab('settings-view')} aria-label="SyncMind settings">
-          <img src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'} alt="SyncMind" />
+        <button 
+          className={`nav-logo overflow-hidden transition-all duration-300 flex items-center justify-center ${activeTab === 'settings-view' ? '!w-auto !px-3 gap-2' : ''}`} 
+          onClick={() => setActiveTab('settings-view')} 
+          aria-label="SyncMind settings"
+        >
+          <img 
+            src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'} 
+            alt="SyncMind" 
+            className={`transition-all duration-300 ${activeTab === 'settings-view' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : ''}`}
+          />
+          {activeTab === 'settings-view' && (
+            <span className="font-semibold text-white/90 text-[13.5px] tracking-wide drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] whitespace-nowrap animate-in fade-in zoom-in duration-300">
+              Settings
+            </span>
+          )}
         </button>
 
         <span className="nav-sep"></span>
