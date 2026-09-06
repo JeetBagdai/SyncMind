@@ -164,7 +164,7 @@ function deriveTitle(text) {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('chat-view')
-  const [selectedTeam, setSelectedTeam] = useState(localStorage.getItem('syncmind_team') || 'TEAM')
+  const [selectedTeam, setSelectedTeam] = useState(localStorage.getItem('syncmind_team') || 'TEAM_OPS_ENG')
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false)
   // Agent Log and Workspace get the wide rectangular nav; Chat keeps the pill.
   const navWide = activeTab !== 'chat-view'
@@ -1862,10 +1862,11 @@ export default function App() {
                           className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm outline-none hover:border-white/30 hover:bg-white/10 transition-all text-white shadow-inner flex justify-between items-center text-left"
                         >
                           <span className={selectedTeam ? 'opacity-100' : 'opacity-50'}>
-                            {selectedTeam === 'TEAM_HR' ? 'Human Resources (HR)' : 
-                             selectedTeam === 'TEAM_RND' ? 'Research & Development (R&D)' :
-                             selectedTeam === 'TEAM_SDE' ? 'Software Engineering (SDE)' : 
-                             'General (All Teams)'}
+                            {selectedTeam === 'TEAM_OPS_ENG' ? 'Operations & Core Engineering Team' : 
+                             selectedTeam === 'TEAM_SUPPORT_ADMIN' ? 'Support & Administrative Team' :
+                             selectedTeam === 'TEAM_SAFETY_QA' ? 'Safety, Quality & Technical Strategy Team' :
+                             selectedTeam === 'TEAM_COMM_GOV' ? 'Commercial & Governance Team' :
+                             'Operations & Core Engineering Team'}
                           </span>
                           <svg className={`w-4 h-4 text-white opacity-50 transition-transform ${isTeamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -1875,10 +1876,10 @@ export default function App() {
                         {isTeamDropdownOpen && (
                           <div className="absolute top-full left-0 w-full mt-2 bg-[#1a1a1a] border border-[var(--nav-border)] rounded-lg shadow-2xl z-50 overflow-hidden py-1">
                             {[
-                              { id: 'TEAM', label: 'General (All Teams)' },
-                              { id: 'TEAM_HR', label: 'Human Resources (HR)' },
-                              { id: 'TEAM_RND', label: 'Research & Development (R&D)' },
-                              { id: 'TEAM_SDE', label: 'Software Engineering (SDE)' }
+                              { id: 'TEAM_OPS_ENG', label: 'Operations & Core Engineering Team' },
+                              { id: 'TEAM_SUPPORT_ADMIN', label: 'Support & Administrative Team' },
+                              { id: 'TEAM_SAFETY_QA', label: 'Safety, Quality & Technical Strategy Team' },
+                              { id: 'TEAM_COMM_GOV', label: 'Commercial & Governance Team' }
                             ].map((opt) => (
                               <button
                                 key={opt.id}
