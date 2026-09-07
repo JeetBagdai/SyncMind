@@ -1,5 +1,7 @@
 import re
 import uuid
+import hashlib
+import json
 from datetime import datetime
 from router import call_llm
 from rag.search import search_knowledge_base
@@ -58,11 +60,14 @@ class Tools:
         else:
             return f"Error: Tool {tool_name} not found."
 
+NODE_ID = str(uuid.uuid4())
+
 class ContextStore:
     def __init__(self):
         try:
             self.conn = dbapi2.connect(host='127.0.0.1', port=4001)
             self.tools = Tools()
+            self.local_clocks = {}
             self._init_db()
         except Exception as e:
             print(f"Warning: Failed to connect to rqlite: {e}")
@@ -91,14 +96,14 @@ class ContextStore:
                 )
             """)
 
-    def create_chat(self, title="New Chat", category="Recents", owner_id="TEAM", chat_id=None):
+    def create_chat(self, title="New Chat", category="Recents", owner_id="TEAM", data_policy="SOVEREIGN", chat_id=None):
         if not chat_id:
             chat_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         with self.conn.cursor() as cursor:
             cursor.execute(
-                "INSERT OR REPLACE INTO chats (id, title, category, owner_id, updated_at) VALUES (?, ?, ?, ?, ?)",
-                (chat_id, title, category, owner_id, now)
+                "INSERT OR REPLACE INTO chats (id, title, category, owner_id, data_policy, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (chat_id, title, category, owner_id, data_policy, now)
             )
         return chat_id
 
@@ -106,20 +111,20 @@ class ContextStore:
         with self.conn.cursor() as cursor:
             if owner_id == "TEAM_CENTRAL":
                 cursor.execute(
-                    "SELECT id, title, category, is_pinned, updated_at FROM chats WHERE owner_id LIKE 'TEAM_%' OR owner_id = 'TEAM' ORDER BY is_pinned DESC, updated_at DESC"
+                    "SELECT id, title, category, is_pinned, updated_at, data_policy FROM chats WHERE owner_id LIKE 'TEAM_%' OR owner_id = 'TEAM' ORDER BY is_pinned DESC, updated_at DESC"
                 )
             else:
                 cursor.execute(
-                    "SELECT id, title, category, is_pinned, updated_at FROM chats WHERE owner_id = ? ORDER BY is_pinned DESC, updated_at DESC", 
+                    "SELECT id, title, category, is_pinned, updated_at, data_policy FROM chats WHERE owner_id = ? ORDER BY is_pinned DESC, updated_at DESC", 
                     (owner_id,)
                 )
             rows = cursor.fetchall()
             return [
-                {"id": r[0], "title": r[1], "category": r[2], "is_pinned": bool(r[3]), "updated_at": r[4]}
+                {"id": r[0], "title": r[1], "category": r[2], "is_pinned": bool(r[3]), "updated_at": r[4], "data_policy": r[5] if len(r) > 5 else "SOVEREIGN"}
                 for r in rows
             ]
 
-    def update_chat(self, chat_id, title=None, category=None, is_pinned=None, owner_id=None):
+    def update_chat(self, chat_id, title=None, category=None, is_pinned=None, owner_id=None, data_policy=None):
         updates = []
         params = []
         if title is not None:
@@ -134,6 +139,9 @@ class ContextStore:
         if is_pinned is not None:
             updates.append("is_pinned = ?")
             params.append(1 if is_pinned else 0)
+        if data_policy is not None:
+            updates.append("data_policy = ?")
+            params.append(data_policy)
             
         if not updates:
             return
@@ -156,10 +164,20 @@ class ContextStore:
 
     def add_message(self, chat_id, role, content, sender_name=None):
         now = datetime.utcnow().isoformat()
+        
+        if chat_id not in self.local_clocks:
+            self.local_clocks[chat_id] = 0
+        self.local_clocks[chat_id] += 1
+        vclock = {NODE_ID: self.local_clocks[chat_id]}
+        vclock_str = json.dumps(vclock)
+        
+        hash_input = f"{chat_id}{role}{content}{now}".encode('utf-8')
+        integrity_hash = hashlib.sha256(hash_input).hexdigest()
+        
         with self.conn.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO messages_v2 (chat_id, role, content, timestamp, sender_name) VALUES (?, ?, ?, ?, ?)",
-                (chat_id, role, content, now, sender_name)
+                "INSERT INTO messages_v2 (chat_id, role, content, timestamp, sender_name, vector_clock, integrity_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (chat_id, role, content, now, sender_name, vclock_str, integrity_hash)
             )
         self.touch_chat(chat_id)
 
@@ -171,6 +189,16 @@ class ContextStore:
             )
             rows = cursor.fetchall()
             return [{"role": r[0], "content": r[1], "sender_name": r[2]} for r in rows]
+            
+
+    def get_history_with_hashes(self, chat_id):
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT role, content, sender_name, timestamp, vector_clock, integrity_hash FROM messages_v2 WHERE chat_id = ? ORDER BY timestamp ASC",
+                (chat_id,)
+            )
+            rows = cursor.fetchall()
+            return [{"role": r[0], "content": r[1], "sender_name": r[2], "timestamp": r[3], "vector_clock": json.loads(r[4]) if r[4] else {}, "integrity_hash": r[5]} for r in rows]
             
     async def run_agent_loop(self, chat_id: str, user_prompt: str, image_b64: str = None, stream_callback = None, requested_model: str = "Auto", sender_name: str = None) -> str:
         self.add_message(chat_id, "user", user_prompt, sender_name=sender_name)

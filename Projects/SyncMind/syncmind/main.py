@@ -35,6 +35,7 @@ store = ContextStore()
 
 # Track all connected LAN clients: dict mapping chat_id -> list of websockets
 clients_by_chat = {}
+active_participants = {}
 
 async def broadcast(chat_id: str, message: dict):
     if chat_id not in clients_by_chat:
@@ -114,6 +115,12 @@ def delete_chat(chat_id: str):
     store.delete_chat(chat_id)
     return {"status": "ok"}
 
+
+@app.get("/api/chats/{chat_id}/verify")
+def verify_chat_history(chat_id: str):
+    history = store.get_history_with_hashes(chat_id)
+    return {"chat_id": chat_id, "history": history}
+
 @app.post("/api/upload/{chat_id}")
 async def upload_file(chat_id: str, file: UploadFile = File(...)):
     """Uploads a file, processes it through OCR/extraction, and adds to RAG context."""
@@ -162,7 +169,12 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
     await websocket.accept()
     if chat_id not in clients_by_chat:
         clients_by_chat[chat_id] = []
+    if chat_id not in active_participants:
+        active_participants[chat_id] = set()
+        
     clients_by_chat[chat_id].append(websocket)
+    
+    current_sender = None
     
     # Send history to the newly connected user
     history = store.get_history(chat_id, limit=50)
@@ -183,6 +195,16 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
                 sender_name = payload.get("sender_name")
                 print("DEBUG SENDER_NAME:", sender_name)
                 
+                # Presence Protocol
+                if sender_name:
+                    current_sender = sender_name
+                    if sender_name not in active_participants[chat_id]:
+                        active_participants[chat_id].add(sender_name)
+                        await broadcast(chat_id, {
+                            "type": "presence",
+                            "participants": list(active_participants[chat_id])
+                        })
+                
                 # Broadcast user message to ALL connected team members in this chat
                 await broadcast(chat_id, {
                     "type": "message",
@@ -196,6 +218,16 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
                     })
                     
                 requested_model = payload.get("model", "Auto")
+                
+                # Inference Protocol Started
+                import time
+                start_time = time.time()
+                await broadcast(chat_id, {
+                    "type": "inference_started",
+                    "timestamp": datetime.datetime.utcnow().isoformat(),
+                    "model": requested_model
+                })
+                
                 final_answer = await store.run_agent_loop(
                     chat_id=chat_id,
                     user_prompt=user_msg, 
@@ -205,6 +237,13 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
                     sender_name=sender_name
                 )
                 
+                # Inference Protocol Completed
+                duration_ms = int((time.time() - start_time) * 1000)
+                await broadcast(chat_id, {
+                    "type": "inference_complete",
+                    "duration_ms": duration_ms
+                })
+                
                 await broadcast(chat_id, {
                     "type": "message",
                     "message": {"role": "assistant", "content": final_answer}
@@ -213,10 +252,23 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
     except WebSocketDisconnect:
         if chat_id in clients_by_chat and websocket in clients_by_chat[chat_id]:
             clients_by_chat[chat_id].remove(websocket)
+        if current_sender and chat_id in active_participants and current_sender in active_participants[chat_id]:
+            active_participants[chat_id].remove(current_sender)
+            await broadcast(chat_id, {
+                "type": "presence",
+                "participants": list(active_participants[chat_id])
+            })
     except Exception as e:
-        print(f"WebSocket Error: {e}")
+        import traceback
+        traceback.print_exc()
         if chat_id in clients_by_chat and websocket in clients_by_chat[chat_id]:
             clients_by_chat[chat_id].remove(websocket)
+        if current_sender and chat_id in active_participants and current_sender in active_participants[chat_id]:
+            active_participants[chat_id].remove(current_sender)
+            await broadcast(chat_id, {
+                "type": "presence",
+                "participants": list(active_participants[chat_id])
+            })
 
 # Mount static files for the dashboard
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
