@@ -1566,14 +1566,14 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => toggleChatPrivacy(activeConv?.id, 'TEAM')}
-                      className={`px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors ${activeConv?.owner_id === 'TEAM' ? 'bg-[#292929] text-white shadow shadow-black/20' : 'text-white/40 hover:text-white/70'}`}
+                      className={`px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors ${activeConv?.owner_id?.startsWith('TEAM') ? 'bg-[#292929] text-white shadow shadow-black/20' : 'text-white/40 hover:text-white/70'}`}
                     >
                       Team
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleChatPrivacy(activeConv?.id, 'PERSONAL')}
-                      className={`px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors ${activeConv?.owner_id !== 'TEAM' ? 'bg-[#292929] text-white shadow shadow-black/20' : 'text-white/40 hover:text-white/70'}`}
+                      className={`px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors ${!activeConv?.owner_id?.startsWith('TEAM') ? 'bg-[#292929] text-white shadow shadow-black/20' : 'text-white/40 hover:text-white/70'}`}
                     >
                       Personal
                     </button>

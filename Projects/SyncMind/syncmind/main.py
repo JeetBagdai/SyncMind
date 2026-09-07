@@ -18,7 +18,19 @@ import router
 # Install the air-gap monitor before anything else starts
 install_network_monitor()
 
+
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 store = ContextStore()
 
 # Track all connected LAN clients: dict mapping chat_id -> list of websockets
