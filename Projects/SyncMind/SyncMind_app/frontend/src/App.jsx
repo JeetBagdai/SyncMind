@@ -1,4 +1,8 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import Onboarding from './Onboarding';
+import logoLight from './logo-light.png';
+import logoDark from './logo-dark.png';
+
 import { marked } from 'marked'
 import anime from 'animejs'
 import gsap from 'gsap'
@@ -83,7 +87,7 @@ function normalizeFiles(raw) {
 }
 
 function formatFileDate(ts) {
-  if (!ts) return '—'
+  if (!ts) return 'â€”'
   const d = new Date(ts)
   const pad = (n) => String(n).padStart(2, '0')
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}  ${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -159,10 +163,10 @@ const blankConv = () => ({ id: newId(), title: 'New chat', messages: [], created
 function deriveTitle(text) {
   const clean = String(text || '').replace(/\s+/g, ' ').trim()
   if (!clean) return 'New chat'
-  return clean.length > 40 ? clean.slice(0, 40).trimEnd() + '…' : clean
+  return clean.length > 40 ? clean.slice(0, 40).trimEnd() + 'â€¦' : clean
 }
 
-export default function App() {
+function MainApp({ swarmIp }) {
   const [activeTab, setActiveTab] = useState('chat-view')
   const [selectedTeam, setSelectedTeam] = useState(localStorage.getItem('syncmind_team') || 'TEAM_OPS_ENG')
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false)
@@ -265,22 +269,22 @@ export default function App() {
 
   useEffect(() => {
     if (activeTab === 'network-view') {
-      fetch('/api/network-log').then(r => r.json()).then(setNetworkLog).catch(() => {})
+      fetch('http://localhost:8000/api/network-log').then(r => r.json()).then(setNetworkLog).catch(() => {})
       const interval = setInterval(() => {
-        fetch('/api/network-log').then(r => r.json()).then(setNetworkLog).catch(() => {})
+        fetch('http://localhost:8000/api/network-log').then(r => r.json()).then(setNetworkLog).catch(() => {})
       }, 2000)
       return () => clearInterval(interval)
     }
     if (activeTab === 'swarm-view') {
-      fetch('/api/swarm-status').then(r => r.json()).then(setSwarmStatus).catch(() => {})
+      fetch('http://localhost:8000/api/swarm-status').then(r => r.json()).then(setSwarmStatus).catch(() => {})
       const interval = setInterval(() => {
-        fetch('/api/swarm-status').then(r => r.json()).then(setSwarmStatus).catch(() => {})
+        fetch('http://localhost:8000/api/swarm-status').then(r => r.json()).then(setSwarmStatus).catch(() => {})
       }, 3000)
       return () => clearInterval(interval)
     }
   }, [activeTab])
 
-  // ---- Command palette (⌘K) ----
+  // ---- Command palette (âŒ˜K) ----
   const [cmdkOpen, setCmdkOpen] = useState(false)
   const [cmdkQuery, setCmdkQuery] = useState('')
   const [cmdkIndex, setCmdkIndex] = useState(0)
@@ -321,7 +325,7 @@ export default function App() {
     e?.stopPropagation()
     if (editGroupTitle.trim()) {
       setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, group: editGroupTitle.trim() } : c)))
-      fetch(`/api/chats/${id}`, {
+      fetch(`http://localhost:8000/api/chats/${id}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ category: editGroupTitle.trim() })
@@ -415,7 +419,7 @@ export default function App() {
     
     function connect() {
       if (isCleanedUp) return;
-      ws = new WebSocket(`ws://${window.location.host}/ws/${activeConvId}`)
+      ws = new WebSocket(`ws://localhost:8000/ws/${activeConvId}`)
       wsRef.current = ws
 
       ws.onclose = () => {
@@ -459,7 +463,7 @@ export default function App() {
         const local = JSON.parse(localStorage.getItem('syncmind_conversations') || 'null')
         if (Array.isArray(local) && local.length > 0) {
           for (const c of local) {
-            await fetch('/api/chats', {
+            await fetch('http://localhost:8000/api/chats', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ id: c.id, title: c.title || 'Local Chat', owner_id: deviceId })
@@ -473,8 +477,8 @@ export default function App() {
       try {
           const currentTeam = localStorage.getItem('syncmind_team') || 'TEAM_OPS_ENG';
             const [teamRes, personalRes] = await Promise.all([
-              fetch(`/api/chats?owner_id=${currentTeam}`),
-            fetch(`/api/chats?owner_id=${deviceId}`)
+              fetch(`http://localhost:8000/api/chats?owner_id=${currentTeam}`),
+            fetch(`http://localhost:8000/api/chats?owner_id=${deviceId}`)
           ])
           const teamChats = await teamRes.json()
           const personalChats = await personalRes.json()
@@ -555,7 +559,7 @@ export default function App() {
     return () => timers.forEach(clearTimeout)
   }, [messages, isThinking, scrollToBottom])
 
-  // Messages animate in (height grows after mount) — keep pinned to the end
+  // Messages animate in (height grows after mount) â€” keep pinned to the end
   // while that settles, and hide the nav bar once the reader moves down.
   useEffect(() => {
     const el = chatHistoryRef.current
@@ -697,7 +701,7 @@ export default function App() {
     )
 
     return () => {
-      // An inline width only survives here if the tween was interrupted — a
+      // An inline width only survives here if the tween was interrupted â€” a
       // fast second click, or a backgrounded tab whose ticker never ran. Take
       // the width actually on screen as the next tween's start, and drop the
       // stale inline value. A finished tween has already settled itself, so
@@ -713,7 +717,7 @@ export default function App() {
     }
   }, [navWide])
 
-  // ---- Command palette (⌘K) open/close ----
+  // ---- Command palette (âŒ˜K) open/close ----
   const openCmdk = useCallback(() => {
     setCmdkQuery('')
     setCmdkIndex(0)
@@ -840,7 +844,7 @@ export default function App() {
     const currentTeam = localStorage.getItem('syncmind_team') || 'TEAM_OPS_ENG'
       const owner = ownerType === 'TEAM' ? currentTeam : deviceId
     try {
-        const res = await fetch('/api/chats', {
+        const res = await fetch('http://localhost:8000/api/chats', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ title: 'New Chat', category: 'Recents', owner_id: owner })
@@ -881,7 +885,7 @@ export default function App() {
     if (conv) {
       const newPinned = !conv.pinned
       setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: newPinned } : c)))
-      fetch(`/api/chats/${id}`, {
+      fetch(`http://localhost:8000/api/chats/${id}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ is_pinned: newPinned })
@@ -894,7 +898,7 @@ export default function App() {
       const owner = ownerType === 'TEAM' ? currentTeam : deviceId
     const newGroup = ownerType === 'TEAM' ? 'Team Workspace' : 'Personal Workspace'
     setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, owner_id: owner, group: newGroup } : c)))
-    fetch(`/api/chats/${id}`, {
+    fetch(`http://localhost:8000/api/chats/${id}`, {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ owner_id: owner, category: newGroup })
@@ -918,7 +922,7 @@ export default function App() {
       
       return next
     })
-    fetch(`/api/chats/${id}`, { method: 'DELETE' }).catch(()=>null)
+    fetch(`http://localhost:8000/api/chats/${id}`, { method: 'DELETE' }).catch(()=>null)
   }
 
   function handleTabClick(targetId) {
@@ -993,7 +997,7 @@ export default function App() {
         .catch((err) => {
           if (timer) clearTimeout(timer)
           pending = null
-          writeStream(convId, `⚠️ ${err.message}`, true)
+          writeStream(convId, `âš ï¸ ${err.message}`, true)
         })
         .finally(() => setIsThinking(false))
       return
@@ -1006,7 +1010,7 @@ export default function App() {
       const formData = new FormData()
       formData.append('file', attachedFile)
       const targetConvId = activeConvId || (conversations[0] && conversations[0].id)
-      fetch(`/api/upload/${targetConvId}`, {
+      fetch(`http://localhost:8000/api/upload/${targetConvId}`, {
         method: 'POST',
         body: formData
       }).catch(err => console.error("Upload error:", err))
@@ -1206,7 +1210,7 @@ export default function App() {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sb-head">
           <button className="sb-brand" onClick={() => { setActiveTab('settings-view'); setSidebarOpen(false) }}>
-            <img className="brand-logo" src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'} alt="SyncMind" />
+            <img className="brand-logo" src={theme === 'light' ? logoLight : logoDark} alt="SyncMind" />
             <span className="nav-wordmark">SyncMind</span>
           </button>
           <button className="sb-close" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
@@ -1279,7 +1283,7 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Floating Segmented Navigation Bar — top center */}
+      {/* Floating Segmented Navigation Bar â€” top center */}
       <aside
         ref={navBarRef}
         className={`fixed top-6 left-1/2 -translate-x-1/2 z-40 nav-bar ${
@@ -1301,7 +1305,7 @@ export default function App() {
           aria-label="SyncMind settings"
         >
           <img 
-            src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'} 
+            src={theme === 'light' ? logoLight : logoDark} 
             alt="SyncMind" 
             className={`transition-all duration-300 ${activeTab === 'settings-view' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : ''}`}
           />
@@ -1367,7 +1371,7 @@ export default function App() {
             <input
               autoFocus
               className="cmdk-input"
-              placeholder="Jump to a view…"
+              placeholder="Jump to a viewâ€¦"
               value={cmdkQuery}
               onChange={(e) => { setCmdkQuery(e.target.value); setCmdkIndex(0) }}
               onKeyDown={handleCmdkKeyDown}
@@ -1390,8 +1394,8 @@ export default function App() {
               ))}
             </div>
             <div className="cmdk-foot">
-              <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
-              <span><kbd>↵</kbd> select</span>
+              <span><kbd>â†‘</kbd><kbd>â†“</kbd> navigate</span>
+              <span><kbd>â†µ</kbd> select</span>
               <span><kbd>esc</kbd> close</span>
             </div>
           </div>
@@ -1511,7 +1515,7 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Hidden file input — persists outside the popover */}
+                {/* Hidden file input â€” persists outside the popover */}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -1594,7 +1598,7 @@ export default function App() {
                         }}
                         className="file-chip-x"
                       >
-                        ×
+                        Ã—
                       </button>
                     </div>
                   )}
@@ -1665,8 +1669,8 @@ export default function App() {
                   <h2 className="al-title">Agent Thought Stream</h2>
                   <p className="al-sub">
                     {thoughts.length === 0
-                      ? 'Idle · no steps recorded'
-                      : `${thoughts.length} step${thoughts.length === 1 ? '' : 's'} · in order of execution`}
+                      ? 'Idle Â· no steps recorded'
+                      : `${thoughts.length} step${thoughts.length === 1 ? '' : 's'} Â· in order of execution`}
                   </p>
                 </div>
               </header>
@@ -1726,8 +1730,8 @@ export default function App() {
                   <h2 className="ws-title">Generated Deliverables</h2>
                   <p className="ws-sub">
                     {files.length === 0
-                      ? 'Local storage · empty'
-                      : `${files.length} item${files.length === 1 ? '' : 's'} · stored locally`}
+                      ? 'Local storage Â· empty'
+                      : `${files.length} item${files.length === 1 ? '' : 's'} Â· stored locally`}
                   </p>
                 </div>
               </header>
@@ -1990,7 +1994,7 @@ export default function App() {
                               alert("Please select a time first.");
                               return;
                             }
-                            fetch('/api/system/schedule_shutdown', {
+                            fetch('http://localhost:8000/api/system/schedule_shutdown', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ time: timeVal })
@@ -2060,4 +2064,14 @@ export default function App() {
       </main>
     </div>
   )
+}
+
+export default function App() {
+  const [swarmIp, setSwarmIp] = useState(null);
+
+  if (!swarmIp) {
+    return <Onboarding onComplete={(ip) => setSwarmIp(ip)} />;
+  }
+
+  return <MainApp swarmIp={swarmIp} />;
 }
